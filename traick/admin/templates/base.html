@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Traick Admin{% endblock %}</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <nav>
+        <span class="nav-brand">tr<span>ai</span>ck</span>
+        <a href="/admin/" class="{% if active == 'dashboard' %}active{% endif %}">Dashboard</a>
+        <a href="/admin/projects" class="{% if active == 'projects' %}active{% endif %}">Projects</a>
+        <a href="/admin/action_items" class="{% if active == 'action_items' %}active{% endif %}">Action Items</a>
+        <a href="/admin/follow_ups" class="{% if active == 'follow_ups' %}active{% endif %}">Follow Ups</a>
+        <a href="/admin/db" class="{% if active == 'db' %}active{% endif %}">DB</a>
+    </nav>
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>

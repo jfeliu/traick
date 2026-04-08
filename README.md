@@ -201,3 +201,25 @@ INFO  traick.whatsapp.sender  Sent template message to 15559876543
 ```
 
 `cache_read` in the extractor log shows how many tokens were served from Claude's prompt cache (saves ~90% on repeated calls).
+
+---
+
+## Admin UI
+
+The admin interface is available at `/admin` when running the FastAPI app. It provides:
+- Dashboard overview
+- CRUD for Projects, Action Items, and Follow Ups
+- Database table/row counts
+
+### Usage
+
+1. Start the app:
+   ```bash
+   uvicorn traick.main:app --reload
+   ```
+2. Open [http://localhost:8000/admin](http://localhost:8000/admin) in your browser.
+
+### Features
+- View, create, edit, and delete Projects
+- Manage Action Items and Follow Ups
+- Visualize database tables and row counts

@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% set active = "follow_ups" %}
+{% block title %}{% if follow_up %}Edit{% else %}New{% endif %} Follow Up — Traick{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>{% if follow_up %}Edit{% else %}New{% endif %} Follow Up</h1>
+</div>
+<div class="card card-body form-card">
+    <form method="post">
+        <div class="form-group">
+            <label>Project</label>
+            <select name="project_id" required>
+                {% for p in projects %}
+                <option value="{{ p['id'] }}" {% if follow_up and follow_up['project_id'] == p['id'] %}selected{% endif %}>{{ p['name'] }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Action Item</label>
+            <select name="action_item_id" required>
+                {% for ai in action_items %}
+                <option value="{{ ai['id'] }}" {% if follow_up and follow_up['action_item_id'] == ai['id'] %}selected{% endif %}>{{ ai['description'] }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Message</label>
+            <input type="text" name="message" value="{{ follow_up['message'] if follow_up else '' }}" required>
+        </div>
+        <div class="form-group">
+            <label>Scheduled At</label>
+            <input type="datetime-local" name="scheduled_at" value="{{ follow_up['scheduled_at'] if follow_up else '' }}" required>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Save</button>
+            <a href="/admin/follow_ups" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

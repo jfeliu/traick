@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% set active = "follow_ups" %}
+{% block title %}Follow Ups — Traick{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>Follow Ups</h1>
+    <a href="/admin/follow_ups/new" class="btn btn-primary">+ New Follow Up</a>
+</div>
+<div class="card">
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Project</th>
+                    <th>Action Item</th>
+                    <th>Message</th>
+                    <th>Scheduled At</th>
+                    <th>Sent</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for fu in follow_ups %}
+                <tr>
+                    <td>{{ fu["id"] }}</td>
+                    <td>{{ fu["project_name"] }}</td>
+                    <td>{{ fu["action_item_desc"] or "—" }}</td>
+                    <td>{{ fu["message"] }}</td>
+                    <td>{{ fu["scheduled_at"] }}</td>
+                    <td>
+                        {% if fu["sent"] %}
+                        <span class="badge badge-sent">Sent</span>
+                        {% else %}
+                        <span class="badge badge-pending">Pending</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="td-actions">
+                            <a href="/admin/follow_ups/{{ fu['id'] }}/edit" class="btn btn-secondary btn-sm">Edit</a>
+                            <form action="/admin/follow_ups/{{ fu['id'] }}/delete" method="post">
+                                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Delete this follow up?');">Delete</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:2rem;">No follow ups yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

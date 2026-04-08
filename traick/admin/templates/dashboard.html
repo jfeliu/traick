@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% set active = "dashboard" %}
+{% block title %}Dashboard — Traick{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>Dashboard</h1>
+</div>
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-label">Projects</div>
+        <div class="stat-value">{{ project_count }}</div>
+    </div>
+</div>
+{% endblock %}

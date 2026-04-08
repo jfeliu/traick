@@ -13,7 +13,9 @@ from contextlib import asynccontextmanager
 import uvicorn
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 
+from traick.admin.router import router as admin_router
 from traick.config import settings
 from traick.db.database import init_db
 from traick.scheduler.jobs import process_pending_messages, send_due_reminders
@@ -64,6 +66,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Traick", lifespan=lifespan)
 app.include_router(webhook_router)
+app.include_router(admin_router)
+app.mount("/static", StaticFiles(directory="traick/admin/static"), name="static")
 
 
 @app.get("/health")

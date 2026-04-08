@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% set active = "db" %}
+{% block title %}DB Overview — Traick{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>Database Overview</h1>
+</div>
+<div class="card" style="max-width:400px;">
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>Table</th>
+                    <th>Rows</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in tables %}
+                <tr>
+                    <td><code>{{ t }}</code></td>
+                    <td>{{ table_counts[t] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
