@@ -90,19 +90,64 @@ Leave `ALLOWED_NUMBERS` unset to track messages from everyone.
 
 ### Connecting the webhook
 
-Start the server and expose it with cloudflared:
+Start the server:
 
 ```bash
-# Terminal 1 — run the server
 uvicorn traick.main:app --reload
+```
 
-# Terminal 2 — expose it
+Expose it with cloudflared.
+
+Quick test (temporary URL that changes on restart):
+
+```bash
 cloudflared tunnel --url http://localhost:8000
+```
+
+Own domain (recommended):
+
+Prerequisites:
+- Your domain is managed in Cloudflare DNS.
+- `cloudflared` is installed on the machine running traick.
+
+```bash
+# Authenticate cloudflared with your Cloudflare account
+cloudflared tunnel login
+
+# Create a named tunnel (one-time)
+cloudflared tunnel create traick
+```
+
+Save the tunnel UUID from the output (used below as `<TUNNEL-UUID>`).
+
+Create `~/.cloudflared/config.yml`:
+
+```yaml
+tunnel: traick
+credentials-file: /home/<your-user>/.cloudflared/<TUNNEL-UUID>.json
+ingress:
+  - hostname: whatsapp-webhook.<your-domain>
+    service: http://localhost:8000
+  - service: http_status:404
+```
+
+Then route DNS and run the tunnel:
+
+```bash
+cloudflared tunnel route dns traick whatsapp-webhook.<your-domain>
+cloudflared tunnel run traick
+```
+
+Optional (production): run cloudflared as a service:
+
+```bash
+sudo cloudflared service install
+sudo systemctl enable --now cloudflared
 ```
 
 In the Meta dashboard under *Webhooks*:
 
-- **Callback URL**: `https://<your-subdomain>.trycloudflare.com/webhook`
+- **Callback URL**: `https://whatsapp-webhook.<your-domain>/webhook` (or your `trycloudflare.com` URL if using quick test)
 - **Verify token**: the value you set in `WHATSAPP_VERIFY_TOKEN`
 - **Subscriptions**: check `messages`
 
