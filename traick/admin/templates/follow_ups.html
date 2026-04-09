@@ -27,7 +27,7 @@
                     <td>{{ fu["project_name"] }}</td>
                     <td>{{ fu["action_item_desc"] or "—" }}</td>
                     <td>{{ fu["message"] }}</td>
-                    <td>{{ fu["scheduled_at"] }}</td>
+                    <td><span data-utc="{{ fu['scheduled_at'] }}">{{ fu["scheduled_at"] }}</span></td>
                     <td>
                         {% if fu["sent"] %}
                         <span class="badge badge-sent">Sent</span>

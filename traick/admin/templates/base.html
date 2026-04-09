@@ -6,6 +6,43 @@
     <title>{% block title %}Traick Admin{% endblock %}</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Display: convert UTC datetime strings in [data-utc] elements to local time
+        document.querySelectorAll('[data-utc]').forEach(function (el) {
+            var utcStr = el.dataset.utc;
+            if (!utcStr) return;
+            var d = new Date(utcStr.replace(' ', 'T') + 'Z');
+            if (!isNaN(d)) el.textContent = d.toLocaleString();
+        });
+
+        // Edit forms: pre-fill datetime-local inputs with local time from stored UTC
+        document.querySelectorAll('input[type="datetime-local"][data-utc-value]').forEach(function (input) {
+            var utcStr = input.dataset.utcValue;
+            if (!utcStr) return;
+            var d = new Date(utcStr.replace(' ', 'T') + 'Z');
+            if (isNaN(d)) return;
+            var pad = function (n) { return String(n).padStart(2, '0'); };
+            input.value = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) +
+                'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+        });
+
+        // Submit: convert datetime-local values (local time) to UTC before posting
+        document.querySelectorAll('form').forEach(function (form) {
+            var dtInputs = form.querySelectorAll('input[type="datetime-local"]');
+            if (!dtInputs.length) return;
+            form.addEventListener('submit', function () {
+                dtInputs.forEach(function (input) {
+                    if (!input.value) return;
+                    var d = new Date(input.value); // treated as local time by the browser
+                    var pad = function (n) { return String(n).padStart(2, '0'); };
+                    input.value = d.getUTCFullYear() + '-' + pad(d.getUTCMonth() + 1) + '-' + pad(d.getUTCDate()) +
+                        'T' + pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes());
+                });
+            });
+        });
+    });
+</script>
 <body>
     <nav>
         <span class="nav-brand">tr<span>ai</span>ck</span>

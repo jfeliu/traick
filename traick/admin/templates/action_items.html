@@ -28,7 +28,7 @@
                     <td>{{ ai["description"] }}</td>
                     <td>{{ ai["deadline"] or "—" }}</td>
                     <td><span class="badge badge-{{ ai['status'] }}">{{ ai["status"] }}</span></td>
-                    <td>{{ ai["created_at"] }}</td>
+                    <td><span data-utc="{{ ai['created_at'] }}">{{ ai["created_at"] }}</span></td>
                     <td>
                         <div class="td-actions">
                             <a href="/admin/action_items/{{ ai['id'] }}/edit" class="btn btn-secondary btn-sm">Edit</a>

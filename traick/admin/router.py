@@ -159,7 +159,7 @@ async def create_follow_up(request: Request, project_id: int = Form(...), action
             INSERT INTO follow_ups (project_id, action_item_id, message, scheduled_at)
             VALUES (?, ?, ?, ?)
             """,
-            (project_id, action_item_id, message, scheduled_at)
+            (project_id, action_item_id, message, scheduled_at.replace("T", " "))
         )
         await db.commit()
     return RedirectResponse("/admin/follow_ups", status_code=303)
@@ -185,7 +185,7 @@ async def update_follow_up(request: Request, follow_up_id: int, project_id: int 
             """
             UPDATE follow_ups SET project_id = ?, action_item_id = ?, message = ?, scheduled_at = ? WHERE id = ?
             """,
-            (project_id, action_item_id, message, scheduled_at, follow_up_id)
+            (project_id, action_item_id, message, scheduled_at.replace("T", " "), follow_up_id)
         )
         await db.commit()
     return RedirectResponse("/admin/follow_ups", status_code=303)

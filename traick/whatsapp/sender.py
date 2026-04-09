@@ -13,7 +13,7 @@ from traick.config import settings
 logger = logging.getLogger(__name__)
 
 META_API_BASE = "https://graph.facebook.com/v20.0"
-REMINDER_TEMPLATE_NAME = "traick_reminder"
+REMINDER_TEMPLATE_NAME = "traick_recordatori_v2"
 
 
 def _headers() -> dict:
@@ -61,7 +61,7 @@ async def send_template_message(to: str, body: str) -> bool:
         "type": "template",
         "template": {
             "name": REMINDER_TEMPLATE_NAME,
-            "language": {"code": "en_US"},
+            "language": {"code": "ca"},
             "components": [{
                 "type": "body",
                 "parameters": [{"type": "text", "text": body}],
@@ -85,25 +85,25 @@ async def send_template_message(to: str, body: str) -> bool:
 
 async def create_reminder_template() -> bool:
     """
-    Create the traick_reminder template in the Meta Business account.
+    Create the traick_reminder_v2 template in the Meta Business account.
     Template body is a single variable {{1}} so any reminder text can be passed in.
     Only needs to be called once — subsequent calls are safe (returns existing template).
     """
     url = f"{META_API_BASE}/{settings.whatsapp_business_account_id}/message_templates"
     payload = {
         "name": REMINDER_TEMPLATE_NAME,
-        "language": "en_US",
+        "language": "ca",
         "category": "UTILITY",
         "components": [{
             "type": "BODY",
-            "text": "Hola! {{1}} Gràcies",
+            "text": "Hola! Com va? {{1}}. Gràcies.",
         }],
     }
 
     async with httpx.AsyncClient(timeout=10.0) as client:
         try:
             resp = await client.post(url, json=payload, headers=_headers())
-            if resp.status_code == 400 and "already exists" in resp.text:
+            if resp.status_code == 400 and ("already exists" in resp.text.lower()):
                 logger.info("Template '%s' already exists", REMINDER_TEMPLATE_NAME)
                 return True
             resp.raise_for_status()
