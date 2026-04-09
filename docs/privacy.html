@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy — Traick</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --indigo: #6366f1;
+      --slate-900: #0f172a;
+      --slate-800: #1e293b;
+      --slate-600: #475569;
+      --slate-400: #94a3b8;
+      --slate-100: #f1f5f9;
+      --white: #ffffff;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+      color: var(--slate-800);
+      background: var(--white);
+      line-height: 1.7;
+    }
+
+    a { color: var(--indigo); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Nav ── */
+    header {
+      background: rgba(255,255,255,0.95);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid #e2e8f0;
+    }
+    nav {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .logo {
+      font-weight: 800;
+      font-size: 1.2rem;
+      color: var(--slate-900);
+      letter-spacing: -0.02em;
+      text-decoration: none;
+    }
+    .logo span { color: var(--indigo); }
+    .back-link { font-size: 0.875rem; color: var(--slate-600); }
+    .back-link:hover { color: var(--slate-900); text-decoration: none; }
+
+    /* ── Content ── */
+    .container {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 3rem 1.5rem 5rem;
+    }
+    .meta {
+      font-size: 0.85rem;
+      color: var(--slate-400);
+      margin-bottom: 2.5rem;
+    }
+    h1 {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--slate-900);
+      letter-spacing: -0.02em;
+      margin-bottom: 0.5rem;
+    }
+    h2 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--slate-900);
+      margin-top: 2.5rem;
+      margin-bottom: 0.75rem;
+    }
+    p { color: var(--slate-600); margin-bottom: 1rem; }
+    ul { color: var(--slate-600); padding-left: 1.5rem; margin-bottom: 1rem; }
+    ul li { margin-bottom: 0.4rem; }
+
+    /* ── Footer ── */
+    footer {
+      background: var(--slate-900);
+      color: var(--slate-400);
+      text-align: center;
+      padding: 2rem 1.5rem;
+      font-size: 0.875rem;
+    }
+    footer a { color: var(--slate-400); }
+    footer a:hover { color: var(--white); text-decoration: none; }
+  </style>
+</head>
+<body>
+
+<header>
+  <nav>
+    <a href="index.html" class="logo">tr<span>ai</span>ck</a>
+    <a href="index.html" class="back-link">← Back to home</a>
+  </nav>
+</header>
+
+<div class="container">
+  <h1>Privacy Policy</h1>
+  <p class="meta">Last updated: April 9, 2026</p>
+
+  <p>This Privacy Policy describes how Traick ("the app", "we", "our") handles information when you use the Traick WhatsApp assistant. Traick is a self-hosted, open-source application — the operator of any given Traick instance is the individual who deployed it, not Anthropic or any other third party.</p>
+
+  <h2>1. Data We Collect</h2>
+  <p>When a WhatsApp message is sent to a Traick-connected business number, the following data is processed and stored locally:</p>
+  <ul>
+    <li><strong>Phone numbers</strong> — the sender's WhatsApp phone number, used to scope projects and send replies.</li>
+    <li><strong>Message content</strong> — the full text of incoming WhatsApp messages, stored temporarily as raw messages pending AI processing.</li>
+    <li><strong>Extracted data</strong> — projects, action items, deadlines, and follow-up schedules derived from message content by Claude (Anthropic's AI model).</li>
+  </ul>
+
+  <h2>2. How We Use Your Data</h2>
+  <ul>
+    <li>To generate automated replies to incoming WhatsApp messages on behalf of the account owner.</li>
+    <li>To extract and maintain a structured record of projects and action items mentioned in conversations.</li>
+    <li>To send proactive follow-up reminder messages when scheduled deadlines approach.</li>
+  </ul>
+
+  <h2>3. Data Storage</h2>
+  <p>All data is stored in a SQLite database file on the server where Traick is deployed. Traick does not transmit your data to any centralized service operated by this project. Message content is sent to Anthropic's Claude API solely for the purpose of generating replies and extracting structured information; Anthropic's own <a href="https://www.anthropic.com/privacy">Privacy Policy</a> applies to that processing.</p>
+
+  <h2>4. Data Sharing</h2>
+  <p>Traick does not sell, rent, or share personal data with third parties, except:</p>
+  <ul>
+    <li><strong>Anthropic</strong> — message content is sent to the Claude API to generate replies and extract project data.</li>
+    <li><strong>Meta (WhatsApp)</strong> — outbound messages are delivered via the WhatsApp Cloud API. Meta's <a href="https://www.whatsapp.com/legal/privacy-policy">Privacy Policy</a> applies to message delivery.</li>
+  </ul>
+
+  <h2>5. Data Retention</h2>
+  <p>Data is retained for as long as the Traick instance is operational. The operator of the instance is responsible for managing and deleting data. Raw messages are marked as processed after AI extraction but remain in the database unless manually deleted.</p>
+
+  <h2>6. Your Rights</h2>
+  <p>If you have sent messages to a Traick-connected number and would like your data removed, please contact the operator of that Traick instance directly.</p>
+
+  <h2>7. Contact</h2>
+  <p>For questions about this privacy policy, contact the operator via GitHub: <a href="https://github.com/jfeliu/traick">github.com/jfeliu/traick</a>.</p>
+</div>
+
+<footer>
+  <div>© 2026 Jordi · <a href="index.html">traick</a> · <a href="https://github.com/jfeliu/traick">GitHub</a></div>
+</footer>
+
+</body>
+</html>

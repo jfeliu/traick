@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 56" fill="none">
+  <!-- icon mark: three nodes connected -->
+  <circle cx="12" cy="28" r="5" fill="#6366f1"/>
+  <circle cx="30" cy="14" r="5" fill="#6366f1" opacity="0.6"/>
+  <circle cx="30" cy="42" r="5" fill="#6366f1" opacity="0.6"/>
+  <line x1="17" y1="25" x2="25" y2="17" stroke="#6366f1" stroke-width="1.5" opacity="0.5"/>
+  <line x1="17" y1="31" x2="25" y2="39" stroke="#6366f1" stroke-width="1.5" opacity="0.5"/>
+  <!-- wordmark -->
+  <text x="46" y="40" font-family="system-ui,-apple-system,'Segoe UI',sans-serif" font-weight="700" font-size="36" letter-spacing="-1">
+    <tspan fill="#1e293b">tr</tspan><tspan fill="#6366f1">ai</tspan><tspan fill="#1e293b">ck</tspan>
+  </text>
+</svg>
