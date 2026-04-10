@@ -177,7 +177,7 @@ Claude will extract projects, action items, and deadlines from the file and save
 
 ---
 
-## Running
+## Running locally
 
 ```bash
 # Development (auto-reload on file changes)
@@ -193,6 +193,53 @@ The server starts on port `8000`. Check it's up:
 ```bash
 curl http://localhost:8000/health
 # {"status":"ok"}
+```
+
+---
+
+## Deploying to Fly.io
+
+Requires a [Fly.io](https://fly.io) account and the `flyctl` CLI.
+
+```bash
+brew install flyctl
+fly auth login
+```
+
+**1. Create the app and persistent volume**
+
+```bash
+fly apps create traick
+fly volumes create traick_data --region cdg --size 1
+```
+
+**2. Set secrets**
+
+```bash
+fly secrets import < .env.production
+```
+
+**3. Deploy**
+
+```bash
+fly deploy
+```
+
+**4. Add your custom domain (optional)**
+
+```bash
+fly certs add yourdomain.com
+fly certs show yourdomain.com   # get the IPs to point DNS to
+```
+
+Then update the Meta webhook URL to `https://yourdomain.com/webhook`.
+
+**Useful commands**
+
+```bash
+fly logs          # tail live logs
+fly ssh console   # SSH into the running container
+fly status        # check app health
 ```
 
 ---
