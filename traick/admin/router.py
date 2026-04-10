@@ -147,7 +147,7 @@ async def new_follow_up_form(request: Request):
         db.row_factory = aiosqlite.Row
         cursor = await db.execute("SELECT id, name FROM projects ORDER BY name")
         projects = await cursor.fetchall()
-        cursor = await db.execute("SELECT id, description FROM action_items ORDER BY description")
+        cursor = await db.execute("SELECT id, description, project_id FROM action_items ORDER BY description")
         action_items = await cursor.fetchall()
     return templates.TemplateResponse(request=request, name="follow_up_form.html", context={"projects": projects, "action_items": action_items})
 
@@ -172,7 +172,7 @@ async def edit_follow_up_form(request: Request, follow_up_id: int):
         follow_up = await cursor.fetchone()
         cursor = await db.execute("SELECT id, name FROM projects ORDER BY name")
         projects = await cursor.fetchall()
-        cursor = await db.execute("SELECT id, description FROM action_items ORDER BY description")
+        cursor = await db.execute("SELECT id, description, project_id FROM action_items ORDER BY description")
         action_items = await cursor.fetchall()
     if not follow_up:
         raise HTTPException(status_code=404, detail="Follow-up not found")
