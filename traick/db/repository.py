@@ -2,7 +2,6 @@
 
 from datetime import datetime, timezone
 
-import aiosqlite
 
 from traick.db.database import get_db
 
@@ -13,8 +12,13 @@ def _now() -> str:
 
 # ── Raw messages ──────────────────────────────────────────────────────────────
 
-async def save_raw_message(wa_id: str, from_number: str, body: str, timestamp: int) -> None:
-    ts = datetime.fromtimestamp(timestamp, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+
+async def save_raw_message(
+    wa_id: str, from_number: str, body: str, timestamp: int
+) -> None:
+    ts = datetime.fromtimestamp(timestamp, tz=timezone.utc).strftime(
+        "%Y-%m-%d %H:%M:%S"
+    )
     async with get_db() as db:
         await db.execute(
             """
@@ -60,6 +64,7 @@ async def mark_messages_processed(ids: list[int]) -> None:
 
 # ── Projects ──────────────────────────────────────────────────────────────────
 
+
 async def upsert_project(
     owner_number: str, name: str, description: str | None, status: str
 ) -> int:
@@ -102,12 +107,15 @@ async def get_active_projects(owner_number: str | None = None) -> list[dict]:
 
 # ── Action items ──────────────────────────────────────────────────────────────
 
+
 async def create_action_item(
     project_id: int, description: str, deadline: int | None
 ) -> int:
     deadline_str: str | None = None
     if deadline is not None:
-        deadline_str = datetime.fromtimestamp(deadline, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+        deadline_str = datetime.fromtimestamp(deadline, tz=timezone.utc).strftime(
+            "%Y-%m-%d %H:%M:%S"
+        )
     async with get_db() as db:
         cursor = await db.execute(
             """
@@ -132,13 +140,16 @@ async def get_open_action_items(project_id: int) -> list[dict]:
 
 # ── Follow-ups ────────────────────────────────────────────────────────────────
 
+
 async def schedule_follow_up(
     project_id: int,
     action_item_id: int | None,
     message: str,
     scheduled_at: int,
 ) -> None:
-    scheduled_str = datetime.fromtimestamp(scheduled_at, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+    scheduled_str = datetime.fromtimestamp(scheduled_at, tz=timezone.utc).strftime(
+        "%Y-%m-%d %H:%M:%S"
+    )
     async with get_db() as db:
         await db.execute(
             """

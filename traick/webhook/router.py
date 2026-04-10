@@ -11,7 +11,11 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, Request
 
 from traick.ai.responder import generate_reply
 from traick.config import settings
-from traick.db.repository import get_active_projects, get_recent_messages, save_raw_message
+from traick.db.repository import (
+    get_active_projects,
+    get_recent_messages,
+    save_raw_message,
+)
 from traick.webhook.models import WhatsAppMessage, WhatsAppWebhookPayload
 from traick.whatsapp.sender import send_message
 
@@ -67,8 +71,13 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
                     if msg.type != "text" or msg.text is None:
                         continue
                     # Drop messages from numbers not in the whitelist
-                    if settings.allowed_number_list and msg.from_ not in settings.allowed_number_list:
-                        logger.debug("Ignored message from unlisted number %s", msg.from_)
+                    if (
+                        settings.allowed_number_list
+                        and msg.from_ not in settings.allowed_number_list
+                    ):
+                        logger.debug(
+                            "Ignored message from unlisted number %s", msg.from_
+                        )
                         continue
                     await save_raw_message(
                         wa_id=msg.id,

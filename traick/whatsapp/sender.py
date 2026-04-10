@@ -42,7 +42,12 @@ async def send_message(to: str, body: str) -> bool:
             logger.info("Sent message to %s", to)
             return True
         except httpx.HTTPStatusError as e:
-            logger.error("Failed to send message to %s: %s %s", to, e.response.status_code, e.response.text)
+            logger.error(
+                "Failed to send message to %s: %s %s",
+                to,
+                e.response.status_code,
+                e.response.text,
+            )
             return False
         except Exception:
             logger.exception("Unexpected error sending message to %s", to)
@@ -62,10 +67,12 @@ async def send_template_message(to: str, body: str) -> bool:
         "template": {
             "name": REMINDER_TEMPLATE_NAME,
             "language": {"code": "ca"},
-            "components": [{
-                "type": "body",
-                "parameters": [{"type": "text", "text": body}],
-            }],
+            "components": [
+                {
+                    "type": "body",
+                    "parameters": [{"type": "text", "text": body}],
+                }
+            ],
         },
     }
 
@@ -76,7 +83,12 @@ async def send_template_message(to: str, body: str) -> bool:
             logger.info("Sent template message to %s", to)
             return True
         except httpx.HTTPStatusError as e:
-            logger.error("Failed to send template message to %s: %s %s", to, e.response.status_code, e.response.text)
+            logger.error(
+                "Failed to send template message to %s: %s %s",
+                to,
+                e.response.status_code,
+                e.response.text,
+            )
             return False
         except Exception:
             logger.exception("Unexpected error sending template message to %s", to)
@@ -94,10 +106,12 @@ async def create_reminder_template() -> bool:
         "name": REMINDER_TEMPLATE_NAME,
         "language": "ca",
         "category": "UTILITY",
-        "components": [{
-            "type": "BODY",
-            "text": "Hola! Com va? {{1}}. Gràcies.",
-        }],
+        "components": [
+            {
+                "type": "BODY",
+                "text": "Hola! Com va? {{1}}. Gràcies.",
+            }
+        ],
     }
 
     async with httpx.AsyncClient(timeout=10.0) as client:
@@ -116,7 +130,11 @@ async def create_reminder_template() -> bool:
             )
             return True
         except httpx.HTTPStatusError as e:
-            logger.error("Failed to create template: %s %s", e.response.status_code, e.response.text)
+            logger.error(
+                "Failed to create template: %s %s",
+                e.response.status_code,
+                e.response.text,
+            )
             return False
         except Exception:
             logger.exception("Unexpected error creating template")

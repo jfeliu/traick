@@ -88,9 +88,7 @@ async def process_pending_messages() -> None:
     for msg in messages:
         groups.setdefault(msg["from_number"], []).append(msg)
 
-    logger.info(
-        "Processing %d messages from %d number(s)", len(messages), len(groups)
-    )
+    logger.info("Processing %d messages from %d number(s)", len(messages), len(groups))
 
     for owner_number, group in groups.items():
         await _process_group(owner_number, group)

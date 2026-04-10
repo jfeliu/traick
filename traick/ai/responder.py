@@ -66,11 +66,13 @@ async def generate_reply(
         response = await client.messages.create(
             model=MODEL,
             max_tokens=512,
-            system=[{
-                "type": "text",
-                "text": SYSTEM_PROMPT,
-                "cache_control": {"type": "ephemeral", "ttl": "1h"},
-            }],
+            system=[
+                {
+                    "type": "text",
+                    "text": SYSTEM_PROMPT,
+                    "cache_control": {"type": "ephemeral", "ttl": "1h"},
+                }
+            ],
             messages=[{"role": "user", "content": user_content}],
         )
         reply = response.content[0].text.strip()

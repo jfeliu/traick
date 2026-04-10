@@ -88,9 +88,7 @@ async def extract_from_messages(
         return ExtractionResult(updates=[])
 
     # Format messages as a numbered list for the prompt
-    formatted = "\n".join(
-        f"[{i+1}] {m['body']}" for i, m in enumerate(messages)
-    )
+    formatted = "\n".join(f"[{i + 1}] {m['body']}" for i, m in enumerate(messages))
 
     context = ""
     if existing_projects:
