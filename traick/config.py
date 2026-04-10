@@ -17,6 +17,11 @@ class Settings(BaseSettings):
     # Leave unset or empty to track messages from ALL numbers.
     allowed_numbers: str = ""
 
+    # Admin
+    admin_username: str = "admin"
+    admin_password: str
+    admin_secret_key: str
+
     # App
     db_path: str = "traick.db"
     batch_size: int = 20

@@ -14,6 +14,7 @@ import uvicorn
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.sessions import SessionMiddleware
 
 from traick.admin.router import router as admin_router
 from traick.config import settings
@@ -65,6 +66,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Traick", lifespan=lifespan)
+app.add_middleware(SessionMiddleware, secret_key=settings.admin_secret_key)
 app.include_router(webhook_router)
 app.include_router(admin_router)
 app.mount("/static", StaticFiles(directory="traick/admin/static"), name="static")

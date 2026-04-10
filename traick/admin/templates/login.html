@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Traick — Login</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body style="display:flex; align-items:center; justify-content:center; min-height:100vh;">
+    <div class="card form-card" style="width:100%; max-width:380px;">
+        <div class="card-body">
+            <div style="text-align:center; margin-bottom:1.5rem;">
+                <span class="nav-brand" style="font-size:1.5rem; color:#1e293b;">tr<span style="color:#818cf8;">ai</span>ck</span>
+            </div>
+            {% if error %}
+            <div style="background:#fef2f2; color:#dc2626; border:1px solid #fecaca; border-radius:6px; padding:0.625rem 0.875rem; font-size:0.875rem; margin-bottom:1rem;">
+                {{ error }}
+            </div>
+            {% endif %}
+            <form method="post" action="/admin/login">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" autocomplete="username" autofocus>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" autocomplete="current-password">
+                </div>
+                <div class="form-actions" style="margin-top:1rem;">
+                    <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;">Sign in</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

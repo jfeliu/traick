@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Request, HTTPException, Form
+from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 import aiosqlite
@@ -7,12 +7,45 @@ from traick.config import settings
 router = APIRouter(prefix="/admin")
 templates = Jinja2Templates(directory="traick/admin/templates")
 
-# Mount static files (JS, CSS)
-# This should be done in main.py, but included here for reference
-# app.mount("/static", StaticFiles(directory="traick/admin/static"), name="static")
+
+def _require_auth(request: Request) -> None:
+    if not request.session.get("authenticated"):
+        raise HTTPException(status_code=307, headers={"Location": "/admin/login"})
 
 
-@router.get("/", response_class=HTMLResponse)
+# All routes on `protected` require an active session
+protected = APIRouter(dependencies=[Depends(_require_auth)])
+
+
+@router.get("/login", response_class=HTMLResponse)
+async def login_form(request: Request):
+    return templates.TemplateResponse(request=request, name="login.html")
+
+
+@router.post("/login")
+async def login(
+    request: Request,
+    username: str = Form(...),
+    password: str = Form(...),
+):
+    if username == settings.admin_username and password == settings.admin_password:
+        request.session["authenticated"] = True
+        return RedirectResponse("/admin/", status_code=303)
+    return templates.TemplateResponse(
+        request=request,
+        name="login.html",
+        context={"error": "Invalid credentials"},
+        status_code=401,
+    )
+
+
+@router.post("/logout")
+async def logout(request: Request):
+    request.session.clear()
+    return RedirectResponse("/admin/login", status_code=303)
+
+
+@protected.get("/", response_class=HTMLResponse)
 async def admin_dashboard(request: Request):
     async with aiosqlite.connect(settings.db_path) as db:
         cursor = await db.execute("SELECT COUNT(*) FROM projects")
@@ -22,7 +55,7 @@ async def admin_dashboard(request: Request):
     )
 
 
-@router.get("/projects", response_class=HTMLResponse)
+@protected.get("/projects", response_class=HTMLResponse)
 async def list_projects(request: Request):
     async with aiosqlite.connect(settings.db_path) as db:
         db.row_factory = aiosqlite.Row
@@ -33,12 +66,12 @@ async def list_projects(request: Request):
     )
 
 
-@router.get("/projects/new", response_class=HTMLResponse)
+@protected.get("/projects/new", response_class=HTMLResponse)
 async def new_project_form(request: Request):
     return templates.TemplateResponse(request=request, name="project_form.html")
 
 
-@router.post("/projects/new")
+@protected.post("/projects/new")
 async def create_project(
     request: Request,
     owner_number: str = Form(...),
@@ -57,7 +90,7 @@ async def create_project(
     return RedirectResponse("/admin/projects", status_code=303)
 
 
-@router.get("/projects/{project_id}/edit", response_class=HTMLResponse)
+@protected.get("/projects/{project_id}/edit", response_class=HTMLResponse)
 async def edit_project_form(request: Request, project_id: int):
     async with aiosqlite.connect(settings.db_path) as db:
         db.row_factory = aiosqlite.Row
@@ -70,7 +103,7 @@ async def edit_project_form(request: Request, project_id: int):
     )
 
 
-@router.post("/projects/{project_id}/edit")
+@protected.post("/projects/{project_id}/edit")
 async def update_project(
     request: Request,
     project_id: int,
@@ -89,7 +122,7 @@ async def update_project(
     return RedirectResponse("/admin/projects", status_code=303)
 
 
-@router.post("/projects/{project_id}/delete")
+@protected.post("/projects/{project_id}/delete")
 async def delete_project(request: Request, project_id: int):
     async with aiosqlite.connect(settings.db_path) as db:
         await db.execute("DELETE FROM projects WHERE id = ?", (project_id,))
@@ -97,7 +130,7 @@ async def delete_project(request: Request, project_id: int):
     return RedirectResponse("/admin/projects", status_code=303)
 
 
-@router.get("/action_items", response_class=HTMLResponse)
+@protected.get("/action_items", response_class=HTMLResponse)
 async def list_action_items(request: Request):
     async with aiosqlite.connect(settings.db_path) as db:
         db.row_factory = aiosqlite.Row
@@ -112,7 +145,7 @@ async def list_action_items(request: Request):
     )
 
 
-@router.get("/action_items/new", response_class=HTMLResponse)
+@protected.get("/action_items/new", response_class=HTMLResponse)
 async def new_action_item_form(request: Request):
     async with aiosqlite.connect(settings.db_path) as db:
         db.row_factory = aiosqlite.Row
@@ -123,7 +156,7 @@ async def new_action_item_form(request: Request):
     )
 
 
-@router.post("/action_items/new")
+@protected.post("/action_items/new")
 async def create_action_item(
     request: Request,
     project_id: int = Form(...),
@@ -142,7 +175,7 @@ async def create_action_item(
     return RedirectResponse("/admin/action_items", status_code=303)
 
 
-@router.get("/action_items/{action_item_id}/edit", response_class=HTMLResponse)
+@protected.get("/action_items/{action_item_id}/edit", response_class=HTMLResponse)
 async def edit_action_item_form(request: Request, action_item_id: int):
     async with aiosqlite.connect(settings.db_path) as db:
         db.row_factory = aiosqlite.Row
@@ -161,7 +194,7 @@ async def edit_action_item_form(request: Request, action_item_id: int):
     )
 
 
-@router.post("/action_items/{action_item_id}/edit")
+@protected.post("/action_items/{action_item_id}/edit")
 async def update_action_item(
     request: Request,
     action_item_id: int,
@@ -180,7 +213,7 @@ async def update_action_item(
     return RedirectResponse("/admin/action_items", status_code=303)
 
 
-@router.post("/action_items/{action_item_id}/delete")
+@protected.post("/action_items/{action_item_id}/delete")
 async def delete_action_item(request: Request, action_item_id: int):
     async with aiosqlite.connect(settings.db_path) as db:
         await db.execute("DELETE FROM action_items WHERE id = ?", (action_item_id,))
@@ -188,7 +221,7 @@ async def delete_action_item(request: Request, action_item_id: int):
     return RedirectResponse("/admin/action_items", status_code=303)
 
 
-@router.get("/follow_ups", response_class=HTMLResponse)
+@protected.get("/follow_ups", response_class=HTMLResponse)
 async def list_follow_ups(request: Request):
     async with aiosqlite.connect(settings.db_path) as db:
         db.row_factory = aiosqlite.Row
@@ -201,7 +234,7 @@ async def list_follow_ups(request: Request):
     )
 
 
-@router.get("/follow_ups/new", response_class=HTMLResponse)
+@protected.get("/follow_ups/new", response_class=HTMLResponse)
 async def new_follow_up_form(request: Request):
     async with aiosqlite.connect(settings.db_path) as db:
         db.row_factory = aiosqlite.Row
@@ -218,7 +251,7 @@ async def new_follow_up_form(request: Request):
     )
 
 
-@router.post("/follow_ups/new")
+@protected.post("/follow_ups/new")
 async def create_follow_up(
     request: Request,
     project_id: int = Form(...),
@@ -238,7 +271,7 @@ async def create_follow_up(
     return RedirectResponse("/admin/follow_ups", status_code=303)
 
 
-@router.get("/follow_ups/{follow_up_id}/edit", response_class=HTMLResponse)
+@protected.get("/follow_ups/{follow_up_id}/edit", response_class=HTMLResponse)
 async def edit_follow_up_form(request: Request, follow_up_id: int):
     async with aiosqlite.connect(settings.db_path) as db:
         db.row_factory = aiosqlite.Row
@@ -265,7 +298,7 @@ async def edit_follow_up_form(request: Request, follow_up_id: int):
     )
 
 
-@router.post("/follow_ups/{follow_up_id}/edit")
+@protected.post("/follow_ups/{follow_up_id}/edit")
 async def update_follow_up(
     request: Request,
     follow_up_id: int,
@@ -291,7 +324,7 @@ async def update_follow_up(
     return RedirectResponse("/admin/follow_ups", status_code=303)
 
 
-@router.post("/follow_ups/{follow_up_id}/delete")
+@protected.post("/follow_ups/{follow_up_id}/delete")
 async def delete_follow_up(request: Request, follow_up_id: int):
     async with aiosqlite.connect(settings.db_path) as db:
         await db.execute("DELETE FROM follow_ups WHERE id = ?", (follow_up_id,))
@@ -299,7 +332,7 @@ async def delete_follow_up(request: Request, follow_up_id: int):
     return RedirectResponse("/admin/follow_ups", status_code=303)
 
 
-@router.get("/db", response_class=HTMLResponse)
+@protected.get("/db", response_class=HTMLResponse)
 async def db_overview(request: Request):
     async with aiosqlite.connect(settings.db_path) as db:
         cursor = await db.execute("SELECT name FROM sqlite_master WHERE type='table'")
@@ -314,3 +347,6 @@ async def db_overview(request: Request):
         name="db_overview.html",
         context={"tables": tables, "table_counts": table_counts},
     )
+
+
+router.include_router(protected)

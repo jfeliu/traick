@@ -51,6 +51,9 @@
         <a href="/admin/action_items" class="{% if active == 'action_items' %}active{% endif %}">Action Items</a>
         <a href="/admin/follow_ups" class="{% if active == 'follow_ups' %}active{% endif %}">Follow Ups</a>
         <a href="/admin/db" class="{% if active == 'db' %}active{% endif %}">DB</a>
+        <form method="post" action="/admin/logout" style="margin-left:auto;">
+            <button type="submit" class="btn btn-secondary btn-sm">Logout</button>
+        </form>
     </nav>
     <main>
         {% block content %}{% endblock %}
