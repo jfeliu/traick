@@ -1,8 +1,18 @@
+import logging
+import time
+from datetime import datetime, timezone
+
+import aiosqlite
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-import aiosqlite
+
+from traick.ai.extractor import extract_from_messages
 from traick.config import settings
+from traick.db.repository import create_action_item as repo_create_action_item
+from traick.db.repository import schedule_follow_up as repo_schedule_follow_up
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/admin")
 templates = Jinja2Templates(directory="traick/admin/templates")
@@ -79,6 +89,7 @@ async def create_project(
     description: str = Form(""),
 ):
     async with aiosqlite.connect(settings.db_path) as db:
+        db.row_factory = aiosqlite.Row
         await db.execute(
             """
             INSERT INTO projects (owner_number, name, description, created_at, updated_at)
@@ -87,7 +98,114 @@ async def create_project(
             (owner_number, name, description),
         )
         await db.commit()
+        cursor = await db.execute(
+            "SELECT id FROM projects WHERE owner_number = ? AND name = ?",
+            (owner_number, name),
+        )
+        row = await cursor.fetchone()
+        project_id = row["id"]
+
+    await _generate_project_ai_content(project_id, name, description)
+
     return RedirectResponse("/admin/projects", status_code=303)
+
+
+async def _generate_project_ai_content(
+    project_id: int, name: str, description: str
+) -> None:
+    """Use the AI extractor to create action items and follow-ups for a new project."""
+    if not description:
+        return
+
+    synthetic_message = f"Project: {name}\n{description}"
+    result = await extract_from_messages(
+        messages=[{"body": synthetic_message}],
+        existing_projects=[
+            {"name": name, "description": description, "status": "active"}
+        ],
+    )
+
+    for update in result.updates:
+        for item in update.action_items:
+            deadline_ts: int | None = None
+            if item.deadline_iso:
+                try:
+                    dt = datetime.fromisoformat(item.deadline_iso).replace(
+                        tzinfo=timezone.utc
+                    )
+                    deadline_ts = int(dt.timestamp())
+                except ValueError:
+                    logger.warning("Bad deadline format: %s", item.deadline_iso)
+
+            await repo_create_action_item(
+                project_id=project_id,
+                description=item.description,
+                deadline=deadline_ts,
+            )
+
+        if update.suggested_follow_up:
+            fu = update.suggested_follow_up
+            await repo_schedule_follow_up(
+                project_id=project_id,
+                action_item_id=None,
+                message=fu.message,
+                scheduled_at=int(time.time()) + fu.days_from_now * 86400,
+            )
+            logger.info(
+                "Scheduled follow-up for project %d ('%s') in %d days",
+                project_id,
+                name,
+                fu.days_from_now,
+            )
+
+
+async def _generate_project_ai_content(
+    project_id: int, name: str, description: str
+) -> None:
+    """Use the AI extractor to create action items and follow-ups for a new project."""
+    if not description:
+        return
+
+    synthetic_message = f"Project: {name}\n{description}"
+    result = await extract_from_messages(
+        messages=[{"body": synthetic_message}],
+        existing_projects=[
+            {"name": name, "description": description, "status": "active"}
+        ],
+    )
+
+    for update in result.updates:
+        for item in update.action_items:
+            deadline_ts: int | None = None
+            if item.deadline_iso:
+                try:
+                    dt = datetime.fromisoformat(item.deadline_iso).replace(
+                        tzinfo=timezone.utc
+                    )
+                    deadline_ts = int(dt.timestamp())
+                except ValueError:
+                    logger.warning("Bad deadline format: %s", item.deadline_iso)
+
+            await repo_create_action_item(
+                project_id=project_id,
+                description=item.description,
+                deadline=deadline_ts,
+            )
+
+        if update.suggested_follow_up:
+            fu = update.suggested_follow_up
+            await repo_schedule_follow_up(
+                project_id=project_id,
+                action_item_id=None,
+                message=fu.message,
+                scheduled_at=int(time.time()) + fu.days_from_now * 86400,
+            )
+            logger.info(
+                "Scheduled follow-up for project %d ('%s') in %d days",
+                project_id,
+                name,
+                fu.days_from_now,
+            )
 
 
 @protected.get("/projects/{project_id}/edit", response_class=HTMLResponse)
