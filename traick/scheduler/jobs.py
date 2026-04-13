@@ -57,20 +57,19 @@ async def _process_group(owner_number: str, messages: list[dict]) -> None:
                 deadline=deadline_ts,
             )
 
-        if update.suggested_follow_up:
-            fu = update.suggested_follow_up
-            scheduled_at = int(time.time()) + fu.days_from_now * 86400
+        if update.follow_up_message and update.follow_up_days is not None:
+            scheduled_at = int(time.time()) + update.follow_up_days * 86400
             await schedule_follow_up(
                 project_id=project_id,
                 action_item_id=None,
-                message=fu.message,
+                message=update.follow_up_message,
                 scheduled_at=scheduled_at,
             )
             logger.info(
                 "Scheduled follow-up for '%s' (owner %s) in %d days",
                 update.project_name,
                 owner_number,
-                fu.days_from_now,
+                update.follow_up_days,
             )
 
 

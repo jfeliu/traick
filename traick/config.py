@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     admin_secret_key: str
 
     # App
+    log_level: str = "INFO"
     db_path: str = "traick.db"
     batch_size: int = 20
     process_interval_minutes: int = 5

@@ -21,38 +21,57 @@ from traick.config import settings
 logger = logging.getLogger(__name__)
 
 SYSTEM_PROMPT = """\
-You are a personal project tracker. Your job is to read a batch of WhatsApp messages \
-and extract project-related information from them.
+You are a personal project tracker. Read a batch of WhatsApp messages and extract \
+project-related information. Output ONLY valid JSON matching the schema below — no \
+explanation, no markdown, no code fences.
 
-For each batch of messages you receive, identify:
-1. Projects mentioned (by name or clear description)
-2. Action items, tasks, or next steps tied to each project
-3. Any deadlines or time-sensitive details
-4. Whether a project's status changed (active, paused, done)
-5. Whether a follow-up reminder would be helpful
+Schema:
+{
+  "updates": [
+    {
+      "project_name": "Short name (1-5 words)",
+      "project_status": "active" | "paused" | "done" | null,
+      "description": "Brief description of the project" | null,
+      "action_items": [
+        {
+          "description": "What needs to be done",
+          "deadline_iso": "2026-04-15" | null
+        }
+      ],
+      "follow_up_message": "Reminder message to send later" | null,
+      "follow_up_days": 3 | null
+    }
+  ]
+}
 
 Rules:
-- Only extract information that is clearly present in the messages.
+- Only extract information clearly present in the messages.
 - If multiple messages refer to the same project, merge them.
-- For deadlines, output an ISO 8601 date string (e.g. "2026-04-15") or null.
-- For follow-up suggestions, be specific and actionable (e.g. "Check if you finished \
-the landing page design").
-- If no project-related content is found, return an empty updates list.
-- Project names should be concise (1-5 words).
+- For deadlines, use ISO 8601 format (e.g. "2026-04-15") or null.
+- follow_up_message and follow_up_days must both be set or both be null.
+- If no project-related content is found, return {"updates": []}.
 
-Today's context: You are analyzing personal project updates and conversation snippets. \
-The user wants to stay on top of their personal projects and needs gentle nudges when \
-tasks fall through the cracks."""
+Example output:
+{
+  "updates": [
+    {
+      "project_name": "Website redesign",
+      "project_status": "active",
+      "description": "Redesigning the company website",
+      "action_items": [
+        {"description": "Send mockups to client", "deadline_iso": "2026-04-20"},
+        {"description": "Review feedback", "deadline_iso": null}
+      ],
+      "follow_up_message": "Did you finish the mockups?",
+      "follow_up_days": 3
+    }
+  ]
+}"""
 
 
 class ActionItemExtract(BaseModel):
     description: str
-    deadline_iso: str | None  # ISO 8601 date string or null
-
-
-class FollowUpSuggestion(BaseModel):
-    message: str  # The reminder message to send
-    days_from_now: int  # When to send it
+    deadline_iso: str | None
 
 
 class ProjectUpdate(BaseModel):
@@ -60,7 +79,8 @@ class ProjectUpdate(BaseModel):
     project_status: Literal["active", "paused", "done"] | None
     description: str | None
     action_items: list[ActionItemExtract]
-    suggested_follow_up: FollowUpSuggestion | None
+    follow_up_message: str | None
+    follow_up_days: int | None
 
 
 class ExtractionResult(BaseModel):
@@ -77,8 +97,6 @@ async def extract_from_messages(
     Args:
         messages: List of raw_message dicts from the DB (keys: body, timestamp, from_number)
         existing_projects: Optional list of project dicts already in the DB for this owner.
-                           Providing this lets the model match messages to existing projects
-                           instead of creating duplicates.
 
     Returns:
         ExtractionResult with a list of ProjectUpdate objects
@@ -86,7 +104,6 @@ async def extract_from_messages(
     if not messages:
         return ExtractionResult(updates=[])
 
-    # Format messages as a numbered list for the prompt
     formatted = "\n".join(f"[{i + 1}] {m['body']}" for i, m in enumerate(messages))
 
     context = ""
@@ -103,6 +120,7 @@ async def extract_from_messages(
     client = instructor.from_openai(base_client, mode=instructor.Mode.JSON)
 
     try:
+        logger.debug("Extractor prompt:\n%s", user_content)
         result = await client.chat.completions.create(
             model=settings.ai_model,
             max_tokens=4096,
@@ -112,6 +130,7 @@ async def extract_from_messages(
                 {"role": "user", "content": user_content},
             ],
         )
+        logger.debug("Extractor response:\n%s", result.model_dump_json(indent=2))
 
         logger.info(
             "Extracted %d project updates from %d messages",

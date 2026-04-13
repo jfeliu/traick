@@ -23,9 +23,12 @@ from traick.scheduler.jobs import process_pending_messages, send_due_reminders
 from traick.webhook.router import router as webhook_router
 
 logging.basicConfig(
-    level=logging.INFO,
+    level=settings.log_level.upper(),
     format="%(asctime)s  %(levelname)-8s  %(name)s  %(message)s",
 )
+# Keep noisy third-party loggers at WARNING regardless of log level
+for _noisy in ("httpx", "httpcore", "apscheduler"):
+    logging.getLogger(_noisy).setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 _scheduler = AsyncIOScheduler()

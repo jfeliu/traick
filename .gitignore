@@ -10,3 +10,6 @@ dist/
 .DS_Store
 projects.txt
 .env.production
+# Local AI model files
+salamandra-7b/
+*.gguf
