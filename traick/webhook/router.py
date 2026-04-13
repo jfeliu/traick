@@ -15,6 +15,7 @@ from traick.db.repository import (
     get_active_projects,
     get_recent_messages,
     save_raw_message,
+    save_reply_message,
 )
 from traick.webhook.models import WhatsAppMessage, WhatsAppWebhookPayload
 from traick.whatsapp.sender import send_message
@@ -48,6 +49,7 @@ async def _handle_reply(from_number: str, incoming: str) -> None:
     )
     if reply:
         await send_message(to=from_number, body=reply)
+        await save_reply_message(from_number=from_number, body=reply)
 
 
 @router.post("")

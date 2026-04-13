@@ -30,6 +30,18 @@ async def save_raw_message(
         await db.commit()
 
 
+async def save_reply_message(from_number: str, body: str) -> None:
+    async with get_db() as db:
+        await db.execute(
+            """
+            INSERT INTO raw_messages (from_number, body, timestamp, processed, direction)
+            VALUES (?, ?, ?, 1, 'out')
+            """,
+            (from_number, body, _now()),
+        )
+        await db.commit()
+
+
 async def get_pending_messages(limit: int = 20) -> list[dict]:
     async with get_db() as db:
         cursor = await db.execute(

@@ -10,7 +10,8 @@ CREATE TABLE IF NOT EXISTS raw_messages (
     from_number     TEXT NOT NULL,
     body            TEXT NOT NULL,
     timestamp       DATETIME NOT NULL,
-    processed       INTEGER DEFAULT 0
+    processed       INTEGER DEFAULT 0,
+    direction       TEXT DEFAULT 'in'
 );
 
 CREATE TABLE IF NOT EXISTS projects (
@@ -54,4 +55,11 @@ async def get_db():
 async def init_db() -> None:
     async with aiosqlite.connect(settings.db_path) as db:
         await db.executescript(CREATE_TABLES)
+        # Migration: add direction column to existing databases
+        cursor = await db.execute("PRAGMA table_info(raw_messages)")
+        columns = {row[1] for row in await cursor.fetchall()}
+        if "direction" not in columns:
+            await db.execute(
+                "ALTER TABLE raw_messages ADD COLUMN direction TEXT DEFAULT 'in'"
+            )
         await db.commit()

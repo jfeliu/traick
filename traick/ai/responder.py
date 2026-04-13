@@ -54,7 +54,10 @@ async def generate_reply(
 
     history_context = ""
     if recent_messages:
-        lines = "\n".join(f"[{m['timestamp']}] {m['body']}" for m in recent_messages)
+        lines = "\n".join(
+            f"[{m['timestamp']}] {'You' if m.get('direction') == 'out' else 'Contact'}: {m['body']}"
+            for m in recent_messages
+        )
         history_context = f"<history>\n{lines}\n</history>\n\n"
 
     user_content = (
