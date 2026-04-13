@@ -2,8 +2,9 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    # Anthropic
-    anthropic_api_key: str
+    # Local AI (Ollama)
+    ollama_base_url: str = "http://localhost:11434"
+    ai_model: str = "qwen2.5:7b"
 
     # WhatsApp / Meta Cloud API
     whatsapp_token: str

@@ -1,11 +1,10 @@
 """
-Batch-analyze unprocessed WhatsApp messages with Claude and extract structured
-project/task data.
+Batch-analyze unprocessed WhatsApp messages with a local AI model and extract
+structured project/task data.
 
 Uses:
-  - claude-opus-4-6 with adaptive thinking
-  - prompt caching (1h TTL) on the stable system prompt
-  - client.messages.parse() for validated Pydantic output
+  - Ollama-hosted model via OpenAI-compatible API
+  - instructor for validated Pydantic structured output
 """
 
 from __future__ import annotations
@@ -13,13 +12,13 @@ from __future__ import annotations
 import logging
 from typing import Literal
 
+import instructor
 from pydantic import BaseModel
 
 from traick.ai.client import get_client
+from traick.config import settings
 
 logger = logging.getLogger(__name__)
-
-MODEL = "claude-opus-4-6"
 
 SYSTEM_PROMPT = """\
 You are a personal project tracker. Your job is to read a batch of WhatsApp messages \
@@ -73,12 +72,12 @@ async def extract_from_messages(
     existing_projects: list[dict] | None = None,
 ) -> ExtractionResult:
     """
-    Send a batch of raw messages to Claude and get structured project updates back.
+    Send a batch of raw messages to the local AI model and get structured project updates back.
 
     Args:
         messages: List of raw_message dicts from the DB (keys: body, timestamp, from_number)
         existing_projects: Optional list of project dicts already in the DB for this owner.
-                           Providing this lets Claude match messages to existing projects
+                           Providing this lets the model match messages to existing projects
                            instead of creating duplicates.
 
     Returns:
@@ -100,35 +99,24 @@ async def extract_from_messages(
 
     user_content = f"Analyze these WhatsApp messages and extract project information:{context}\n\nMessages:\n{formatted}"
 
-    client = get_client()
+    base_client = get_client()
+    client = instructor.from_openai(base_client, mode=instructor.Mode.JSON)
 
     try:
-        response = await client.messages.parse(
-            model=MODEL,
+        result = await client.chat.completions.create(
+            model=settings.ai_model,
             max_tokens=4096,
-            thinking={"type": "adaptive"},
-            system=[
-                {
-                    "type": "text",
-                    "text": SYSTEM_PROMPT,
-                    # Cache the system prompt for 1h — it never changes between calls
-                    "cache_control": {"type": "ephemeral", "ttl": "1h"},
-                }
+            response_model=ExtractionResult,
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": user_content},
             ],
-            messages=[{"role": "user", "content": user_content}],
-            output_format=ExtractionResult,
         )
 
-        result = response.parsed_output
-        if result is None:
-            logger.warning("Claude returned unparseable output, skipping batch")
-            return ExtractionResult(updates=[])
-
         logger.info(
-            "Extracted %d project updates from %d messages (cache_read=%s)",
+            "Extracted %d project updates from %d messages",
             len(result.updates),
             len(messages),
-            response.usage.cache_read_input_tokens,
         )
         return result
 

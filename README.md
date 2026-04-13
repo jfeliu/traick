@@ -7,25 +7,25 @@ AI-powered WhatsApp assistant that tracks your personal projects, replies to con
 ```
 Incoming message → webhook → SQLite
                                  ↓ (immediately, background)
-                           Claude claude-opus-4-6
+                           local AI model (Ollama)
                                  ↓
                       reply sent to contact
                                  ↓ (every 1 min)
-                           Claude claude-opus-4-6
+                           local AI model (Ollama)
                                  ↓
                     projects / tasks / follow-ups
                                  ↓ (every 1 min)
                     reminder → contact via template
 ```
 
-When a contact messages your business number, Claude reads the project context and conversation history, then replies automatically in the same language. In parallel, a background job extracts projects, action items, and deadlines. Proactive reminders are sent to each contact using a WhatsApp message template.
+When a contact messages your business number, the AI reads the project context and conversation history, then replies automatically in the same language. In parallel, a background job extracts projects, action items, and deadlines. Proactive reminders are sent to each contact using a WhatsApp message template.
 
 ---
 
 ## Requirements
 
 - Python 3.12+
-- An [Anthropic API key](https://console.anthropic.com)
+- [Ollama](https://ollama.ai) running locally
 - A [Meta WhatsApp Cloud API](https://developers.facebook.com/docs/whatsapp/cloud-api) app (type: Business)
 - A public HTTPS URL for the webhook (e.g. via [cloudflared](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/do-more-with-tunnels/trycloudflare/))
 
@@ -45,6 +45,28 @@ pip install -e .
 
 ---
 
+## Ollama setup
+
+Install Ollama and pull the default model:
+
+```bash
+# Install (Linux/macOS)
+curl -fsSL https://ollama.ai/install.sh | sh
+
+# Pull the model
+ollama pull qwen2.5:7b
+```
+
+Start the Ollama server before running traick:
+
+```bash
+ollama serve
+```
+
+You can use any model that supports JSON mode. `qwen2.5:7b` is the default — it handles multiple languages well and runs comfortably on consumer hardware. To use a different model, set `AI_MODEL` in your `.env`.
+
+---
+
 ## Configuration
 
 Copy the example env file and fill in your credentials:
@@ -55,7 +77,8 @@ cp .env.example .env
 
 | Variable | Required | Description |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | ✅ | Your Anthropic API key |
+| `OLLAMA_BASE_URL` | | Ollama server URL (default: `http://localhost:11434`) |
+| `AI_MODEL` | | Model to use (default: `qwen2.5:7b`) |
 | `WHATSAPP_TOKEN` | ✅ | Meta Cloud API system user token |
 | `WHATSAPP_PHONE_NUMBER_ID` | ✅ | Phone number ID from Meta dashboard |
 | `WHATSAPP_BUSINESS_ACCOUNT_ID` | ✅ | WhatsApp Business Account ID from Meta dashboard |
@@ -173,17 +196,20 @@ To give traick context about projects that predate your WhatsApp conversations, 
 traick-seed projects.txt
 ```
 
-Claude will extract projects, action items, and deadlines from the file and save them to the database, scoped to your `TO_PHONE_NUMBER`.
+The AI will extract projects, action items, and deadlines from the file and save them to the database, scoped to your `TO_PHONE_NUMBER`.
 
 ---
 
 ## Running locally
 
 ```bash
-# Development (auto-reload on file changes)
+# 1. Start Ollama (in a separate terminal)
+ollama serve
+
+# 2. Start traick (development, auto-reload on file changes)
 uvicorn traick.main:app --reload
 
-# Production
+# 3. Production
 traick
 # or: uvicorn traick.main:app --host 0.0.0.0 --port 8000
 ```
@@ -251,7 +277,7 @@ traick/
 ├── main.py              # FastAPI app + APScheduler startup
 ├── config.py            # Settings from .env
 ├── ai/
-│   ├── client.py        # Anthropic client singleton
+│   ├── client.py        # Ollama/OpenAI client singleton
 │   ├── extractor.py     # Structured project/task extraction
 │   └── responder.py     # Conversational reply generation
 ├── db/
@@ -286,13 +312,11 @@ INFO  traick.webhook.router   Saved message <id> from 15559876543
 INFO  traick.ai.responder     Generated reply for 15559876543
 INFO  traick.whatsapp.sender  Sent message to 15559876543
 INFO  traick.scheduler.jobs   Processing 7 messages from 2 number(s)
-INFO  traick.ai.extractor     Extracted 3 project updates from 7 messages (cache_read=1842)
+INFO  traick.ai.extractor     Extracted 3 project updates from 7 messages
 INFO  traick.scheduler.jobs   Scheduled follow-up for 'Website redesign' in 3 days
 INFO  traick.scheduler.jobs   Done — marked 7 messages as processed
 INFO  traick.whatsapp.sender  Sent template message to 15559876543
 ```
-
-`cache_read` in the extractor log shows how many tokens were served from Claude's prompt cache (saves ~90% on repeated calls).
 
 ---
 
