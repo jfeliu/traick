@@ -13,7 +13,7 @@ import logging
 from typing import Literal
 
 import instructor
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from traick.ai.client import get_client
 from traick.config import settings
@@ -45,9 +45,10 @@ Schema:
 }
 
 Rules:
-- Only extract information clearly present in the messages.
+- Extract action items and deadlines from the messages.
 - If multiple messages refer to the same project, merge them.
-- For deadlines, use ISO 8601 format (e.g. "2026-04-15") or null.
+- For deadlines, use ISO 8601 date format (e.g. "2026-04-15") or null.
+- Always suggest a follow_up_message and follow_up_days for any active project — be proactive. Choose a sensible number of days based on urgency (same day = 1, this week = 3, longer term = 7+).
 - follow_up_message and follow_up_days must both be set or both be null.
 - If no project-related content is found, return {"updates": []}.
 
@@ -70,8 +71,8 @@ Example output:
 
 
 class ActionItemExtract(BaseModel):
-    description: str
-    deadline_iso: str | None
+    description: str = ""
+    deadline_iso: str | None = None
 
 
 class ProjectUpdate(BaseModel):
@@ -81,6 +82,11 @@ class ProjectUpdate(BaseModel):
     action_items: list[ActionItemExtract]
     follow_up_message: str | None
     follow_up_days: int | None
+
+    @field_validator("action_items", mode="before")
+    @classmethod
+    def drop_empty_action_items(cls, v: list) -> list:
+        return [item for item in v if item and item.get("description")]
 
 
 class ExtractionResult(BaseModel):

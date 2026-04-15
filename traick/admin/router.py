@@ -120,9 +120,6 @@ async def _generate_project_ai_content(
     synthetic_message = f"Project: {name}\n{description}"
     result = await extract_from_messages(
         messages=[{"body": synthetic_message}],
-        existing_projects=[
-            {"name": name, "description": description, "status": "active"}
-        ],
     )
 
     for update in result.updates:
@@ -143,19 +140,18 @@ async def _generate_project_ai_content(
                 deadline=deadline_ts,
             )
 
-        if update.suggested_follow_up:
-            fu = update.suggested_follow_up
+        if update.follow_up_message and update.follow_up_days is not None:
             await repo_schedule_follow_up(
                 project_id=project_id,
                 action_item_id=None,
-                message=fu.message,
-                scheduled_at=int(time.time()) + fu.days_from_now * 86400,
+                message=update.follow_up_message,
+                scheduled_at=int(time.time()) + update.follow_up_days * 86400,
             )
             logger.info(
                 "Scheduled follow-up for project %d ('%s') in %d days",
                 project_id,
                 name,
-                fu.days_from_now,
+                update.follow_up_days,
             )
 
 
@@ -169,9 +165,6 @@ async def _generate_project_ai_content(
     synthetic_message = f"Project: {name}\n{description}"
     result = await extract_from_messages(
         messages=[{"body": synthetic_message}],
-        existing_projects=[
-            {"name": name, "description": description, "status": "active"}
-        ],
     )
 
     for update in result.updates:
@@ -192,19 +185,18 @@ async def _generate_project_ai_content(
                 deadline=deadline_ts,
             )
 
-        if update.suggested_follow_up:
-            fu = update.suggested_follow_up
+        if update.follow_up_message and update.follow_up_days is not None:
             await repo_schedule_follow_up(
                 project_id=project_id,
                 action_item_id=None,
-                message=fu.message,
-                scheduled_at=int(time.time()) + fu.days_from_now * 86400,
+                message=update.follow_up_message,
+                scheduled_at=int(time.time()) + update.follow_up_days * 86400,
             )
             logger.info(
                 "Scheduled follow-up for project %d ('%s') in %d days",
                 project_id,
                 name,
-                fu.days_from_now,
+                update.follow_up_days,
             )
 
 
