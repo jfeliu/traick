@@ -4,6 +4,7 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     # Local AI (Ollama)
     ollama_base_url: str = "http://localhost:11434"
+    ollama_api_key: str = "ollama"
     ai_model: str = "qwen2.5:7b"
 
     # WhatsApp / Meta Cloud API

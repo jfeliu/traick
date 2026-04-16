@@ -9,6 +9,6 @@ def get_client() -> openai.AsyncOpenAI:
     if _client is None:
         _client = openai.AsyncOpenAI(
             base_url=f"{settings.ollama_base_url}/v1",
-            api_key="ollama",  # Ollama doesn't require a real API key
+            api_key=settings.ollama_api_key,
         )
     return _client

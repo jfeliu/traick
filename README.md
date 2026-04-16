@@ -47,23 +47,137 @@ pip install -e .
 
 ## Ollama setup
 
-Install Ollama and pull the default model:
+### Installation
 
 ```bash
-# Install (Linux/macOS)
+# Linux/macOS
 curl -fsSL https://ollama.ai/install.sh | sh
-
-# Pull the model
-ollama pull qwen2.5:7b
 ```
 
-Start the Ollama server before running traick:
+### Choosing a model
+
+Any Ollama model that supports JSON mode works. Recommendations based on available VRAM:
+
+| VRAM | Model | Command |
+|---|---|---|
+| 4 GB | `qwen2.5:7b` | `ollama pull qwen2.5:7b` |
+| 8 GB | `qwen2.5:14b` | `ollama pull qwen2.5:14b` |
+| 16 GB | `qwen2.5:14b` | `ollama pull qwen2.5:14b` |
+| 24 GB+ | `qwen2.5:32b` | `ollama pull qwen2.5:32b` |
+
+`qwen2.5:14b` is the recommended default — strong instruction following and structured JSON output (critical for the extractor). Set your choice in `.env` via `AI_MODEL`.
+
+### Using a custom model (GGUF)
+
+If you have a GGUF file (e.g. downloaded from HuggingFace):
+
+```bash
+# Create a Modelfile next to the .gguf file
+cat > Modelfile << 'EOF'
+FROM ./your-model.gguf
+TEMPLATE """<|im_start|>system
+{{ .System }}<|im_end|>
+<|im_start|>user
+{{ .Prompt }}<|im_end|>
+<|im_start|>assistant
+"""
+PARAMETER stop "<|im_end|>"
+PARAMETER temperature 0.1
+EOF
+
+ollama create mymodel -f Modelfile
+```
+
+Then set `AI_MODEL=mymodel` in `.env`.
+
+### Running locally (development)
 
 ```bash
 ollama serve
 ```
 
-You can use any model that supports JSON mode. `qwen2.5:7b` is the default — it handles multiple languages well and runs comfortably on consumer hardware. To use a different model, set `AI_MODEL` in your `.env`.
+Ollama listens on `http://localhost:11434` by default.
+
+### Running Ollama for production
+
+When traick is deployed remotely (e.g. Fly.io) but you want to run the AI model on your own machine, expose Ollama through nginx (for API key authentication) and cloudflared (for a public HTTPS URL without opening firewall ports).
+
+```
+Internet → cloudflared → nginx (port 11435, checks API key) → Ollama (port 11434, localhost only)
+```
+
+**1. Keep Ollama on localhost only**
+
+```bash
+export OLLAMA_HOST=127.0.0.1:11434
+ollama serve
+```
+
+**2. Install nginx and configure API key authentication**
+
+```bash
+sudo apt install nginx
+```
+
+Create `/etc/nginx/sites-available/ollama`:
+
+```nginx
+server {
+    listen 11435;
+
+    location / {
+        if ($http_authorization != "Bearer your-secret-api-key") {
+            return 401 '{"error":"Unauthorized"}';
+        }
+
+        proxy_pass http://127.0.0.1:11434;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+
+        # Required for streaming LLM responses
+        proxy_buffering off;
+        proxy_read_timeout 300s;
+    }
+}
+```
+
+Enable and reload:
+
+```bash
+sudo ln -s /etc/nginx/sites-available/ollama /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+**3. Expose via cloudflared**
+
+Set up a named tunnel pointing at nginx:
+
+```bash
+cloudflared tunnel create ollama
+cloudflared tunnel route dns ollama ollama.<your-domain>
+```
+
+Add to `~/.cloudflared/config.yml`:
+
+```yaml
+tunnel: ollama
+credentials-file: /home/<your-user>/.cloudflared/<TUNNEL-UUID>.json
+ingress:
+  - hostname: ollama.<your-domain>
+    service: http://localhost:11435
+  - service: http_status:404
+```
+
+```bash
+cloudflared tunnel run ollama
+```
+
+**4. Set in your production `.env`**
+
+```
+OLLAMA_BASE_URL=https://ollama.<your-domain>
+OLLAMA_API_KEY=your-secret-api-key
+```
 
 ---
 
@@ -78,6 +192,7 @@ cp .env.example .env
 | Variable | Required | Description |
 |---|---|---|
 | `OLLAMA_BASE_URL` | | Ollama server URL (default: `http://localhost:11434`) |
+| `OLLAMA_API_KEY` | | API key if Ollama is exposed publicly (default: `ollama`) |
 | `AI_MODEL` | | Model to use (default: `qwen2.5:7b`) |
 | `WHATSAPP_TOKEN` | ✅ | Meta Cloud API system user token |
 | `WHATSAPP_PHONE_NUMBER_ID` | ✅ | Phone number ID from Meta dashboard |
@@ -245,13 +360,34 @@ fly volumes create traick_data --region cdg --size 1
 fly secrets import < .env.production
 ```
 
+Make sure `.env.production` includes `OLLAMA_BASE_URL` pointing at your publicly accessible Ollama instance (see [Running Ollama for production](#running-ollama-for-production)) and `OLLAMA_API_KEY` if authentication is enabled.
+
 **3. Deploy**
 
 ```bash
 fly deploy
 ```
 
-**4. Add your custom domain (optional)**
+**4. Register the webhook in Meta dashboard**
+
+Go to [developers.facebook.com](https://developers.facebook.com) → your app → WhatsApp → Configuration:
+
+- **Callback URL**: `https://traick.fly.dev/webhook`
+- **Verify token**: the value you set in `WHATSAPP_VERIFY_TOKEN`
+- **Subscriptions**: check `messages`
+
+Click **Verify and save**. The running app will respond to Meta's verification request automatically.
+
+**5. Create the reminder template (one-time)**
+
+```bash
+fly ssh console
+traick-setup
+```
+
+This submits the WhatsApp message template to Meta for approval (usually approved within minutes).
+
+**6. Add your custom domain (optional)**
 
 ```bash
 fly certs add yourdomain.com
