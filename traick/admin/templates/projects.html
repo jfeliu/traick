@@ -2,35 +2,54 @@
 {% set active = "projects" %}
 {% block title %}Projects — Traick{% endblock %}
 {% block content %}
+{% macro sort_th(col, label, extra_class="") %}
+  {% set new_order = "asc" if sort_by == col and sort_order == "desc" else "desc" %}
+  <th{% if extra_class %} class="{{ extra_class }}"{% endif %}><a href="?sort_by={{ col }}&sort_order={{ new_order }}{{ filter_qs }}" class="sort-link{% if sort_by == col %} sort-active{% endif %}">{{ label }}{% if sort_by == col %} <span class="sort-indicator">{{ "↑" if sort_order == "asc" else "↓" }}</span>{% endif %}</a></th>
+{% endmacro %}
 <div class="page-header">
     <h1>Projects</h1>
     <a href="/admin/projects/new" class="btn btn-primary">+ New Project</a>
 </div>
 <div class="card">
+    <div class="table-filters">
+        <form method="get" class="filters-form">
+            <input type="hidden" name="sort_by" value="{{ sort_by }}">
+            <input type="hidden" name="sort_order" value="{{ sort_order }}">
+            <input type="text" name="q" value="{{ q }}" placeholder="Search name or description…" class="filter-input">
+            <select name="status" class="filter-select" onchange="this.form.submit()">
+                <option value="">All statuses</option>
+                <option value="active"{% if status == "active" %} selected{% endif %}>Active</option>
+                <option value="paused"{% if status == "paused" %} selected{% endif %}>Paused</option>
+                <option value="done"{% if status == "done" %} selected{% endif %}>Done</option>
+            </select>
+            <button type="submit" class="btn btn-secondary btn-sm">Filter</button>
+            {% if q or status %}<a href="?" class="btn btn-secondary btn-sm">Clear</a>{% endif %}
+        </form>
+    </div>
     <div class="table-wrapper">
         <table>
             <thead>
                 <tr>
-                    <th>ID</th>
-                    <th>Owner Number</th>
-                    <th>Name</th>
-                    <th>Description</th>
-                    <th>Status</th>
-                    <th>Created</th>
-                    <th>Updated</th>
+                    {{ sort_th("id", "ID", "col-hide-sm") }}
+                    {{ sort_th("owner_number", "Owner Number") }}
+                    {{ sort_th("name", "Name") }}
+                    <th class="col-hide-sm">Description</th>
+                    {{ sort_th("status", "Status") }}
+                    {{ sort_th("created_at", "Created", "col-hide-sm") }}
+                    {{ sort_th("updated_at", "Updated", "col-hide-sm") }}
                     <th></th>
                 </tr>
             </thead>
             <tbody>
                 {% for p in projects %}
                 <tr>
-                    <td>{{ p["id"] }}</td>
+                    <td class="col-hide-sm">{{ p["id"] }}</td>
                     <td>{{ p["owner_number"] }}</td>
                     <td><strong>{{ p["name"] }}</strong></td>
-                    <td>{{ p["description"] }}</td>
+                    <td class="col-hide-sm">{{ p["description"] }}</td>
                     <td><span class="badge badge-{{ p['status'] }}">{{ p["status"] }}</span></td>
-                    <td>{{ p["created_at"] }}</td>
-                    <td>{{ p["updated_at"] }}</td>
+                    <td class="col-hide-sm">{{ p["created_at"] }}</td>
+                    <td class="col-hide-sm">{{ p["updated_at"] }}</td>
                     <td>
                         <div class="td-actions">
                             <a href="/admin/projects/{{ p['id'] }}/edit" class="btn btn-secondary btn-sm">Edit</a>

@@ -1,9 +1,10 @@
 import logging
 import time
 from datetime import datetime, timezone
+from urllib.parse import urlencode as _urlencode
 
 import aiosqlite
-from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
@@ -13,6 +14,24 @@ from traick.db.repository import create_action_item as repo_create_action_item
 from traick.db.repository import schedule_follow_up as repo_schedule_follow_up
 
 logger = logging.getLogger(__name__)
+
+_PROJECTS_SORT = {"id", "owner_number", "name", "status", "created_at", "updated_at"}
+_ACTION_ITEMS_SORT = {
+    "id": "ai.id",
+    "project_name": "p.name",
+    "description": "ai.description",
+    "deadline": "ai.deadline",
+    "status": "ai.status",
+    "created_at": "ai.created_at",
+}
+_FOLLOW_UPS_SORT = {
+    "id": "fu.id",
+    "project_name": "p.name",
+    "action_item_desc": "ai.description",
+    "message": "fu.message",
+    "scheduled_at": "fu.scheduled_at",
+    "sent": "fu.sent",
+}
 
 router = APIRouter(prefix="/admin")
 templates = Jinja2Templates(directory="traick/admin/templates")
@@ -66,13 +85,44 @@ async def admin_dashboard(request: Request):
 
 
 @protected.get("/projects", response_class=HTMLResponse)
-async def list_projects(request: Request):
+async def list_projects(
+    request: Request,
+    sort_by: str = Query("id"),
+    sort_order: str = Query("desc"),
+    status: str = Query("active"),
+    q: str = Query(""),
+):
+    col = sort_by if sort_by in _PROJECTS_SORT else "id"
+    order = "ASC" if sort_order.lower() == "asc" else "DESC"
+    sort_order_norm = order.lower()
+    where_parts: list[str] = []
+    params: list = []
+    if status:
+        where_parts.append("status = ?")
+        params.append(status)
+    if q:
+        where_parts.append("(name LIKE ? OR description LIKE ?)")
+        params.extend([f"%{q}%", f"%{q}%"])
+    where_sql = ("WHERE " + " AND ".join(where_parts)) if where_parts else ""
+    filter_qs = ("&" + _urlencode({k: v for k, v in [("status", status), ("q", q)] if v})) if (status or q) else ""
     async with aiosqlite.connect(settings.db_path) as db:
         db.row_factory = aiosqlite.Row
-        cursor = await db.execute("SELECT * FROM projects ORDER BY created_at DESC")
+        cursor = await db.execute(
+            f"SELECT * FROM projects {where_sql} ORDER BY {col} {order}",
+            params,
+        )
         projects = await cursor.fetchall()
     return templates.TemplateResponse(
-        request=request, name="projects.html", context={"projects": projects}
+        request=request,
+        name="projects.html",
+        context={
+            "projects": projects,
+            "sort_by": col,
+            "sort_order": sort_order_norm,
+            "status": status,
+            "q": q,
+            "filter_qs": filter_qs,
+        },
     )
 
 
@@ -241,17 +291,44 @@ async def delete_project(request: Request, project_id: int):
 
 
 @protected.get("/action_items", response_class=HTMLResponse)
-async def list_action_items(request: Request):
+async def list_action_items(
+    request: Request,
+    sort_by: str = Query("id"),
+    sort_order: str = Query("desc"),
+    status: str = Query("open"),
+    q: str = Query(""),
+):
+    col_expr = _ACTION_ITEMS_SORT.get(sort_by, "ai.id")
+    order = "ASC" if sort_order.lower() == "asc" else "DESC"
+    sort_order_norm = order.lower()
+    where_parts: list[str] = []
+    params: list = []
+    if status:
+        where_parts.append("ai.status = ?")
+        params.append(status)
+    if q:
+        where_parts.append("ai.description LIKE ?")
+        params.append(f"%{q}%")
+    where_sql = ("WHERE " + " AND ".join(where_parts)) if where_parts else ""
+    filter_qs = ("&" + _urlencode({k: v for k, v in [("status", status), ("q", q)] if v})) if (status or q) else ""
     async with aiosqlite.connect(settings.db_path) as db:
         db.row_factory = aiosqlite.Row
         cursor = await db.execute(
-            "SELECT ai.*, p.name as project_name FROM action_items ai LEFT JOIN projects p ON ai.project_id = p.id ORDER BY ai.created_at DESC"
+            f"SELECT ai.*, p.name as project_name FROM action_items ai LEFT JOIN projects p ON ai.project_id = p.id {where_sql} ORDER BY {col_expr} {order}",
+            params,
         )
         action_items = await cursor.fetchall()
     return templates.TemplateResponse(
         request=request,
         name="action_items.html",
-        context={"action_items": action_items},
+        context={
+            "action_items": action_items,
+            "sort_by": sort_by if sort_by in _ACTION_ITEMS_SORT else "id",
+            "sort_order": sort_order_norm,
+            "status": status,
+            "q": q,
+            "filter_qs": filter_qs,
+        },
     )
 
 
@@ -332,15 +409,44 @@ async def delete_action_item(request: Request, action_item_id: int):
 
 
 @protected.get("/follow_ups", response_class=HTMLResponse)
-async def list_follow_ups(request: Request):
+async def list_follow_ups(
+    request: Request,
+    sort_by: str = Query("id"),
+    sort_order: str = Query("desc"),
+    sent: str = Query("0"),
+    q: str = Query(""),
+):
+    col_expr = _FOLLOW_UPS_SORT.get(sort_by, "fu.id")
+    order = "ASC" if sort_order.lower() == "asc" else "DESC"
+    sort_order_norm = order.lower()
+    where_parts: list[str] = []
+    params: list = []
+    if sent in ("0", "1"):
+        where_parts.append("fu.sent = ?")
+        params.append(int(sent))
+    if q:
+        where_parts.append("fu.message LIKE ?")
+        params.append(f"%{q}%")
+    where_sql = ("WHERE " + " AND ".join(where_parts)) if where_parts else ""
+    filter_qs = ("&" + _urlencode({k: v for k, v in [("sent", sent), ("q", q)] if v})) if (sent or q) else ""
     async with aiosqlite.connect(settings.db_path) as db:
         db.row_factory = aiosqlite.Row
         cursor = await db.execute(
-            "SELECT fu.*, p.name as project_name, ai.description as action_item_desc FROM follow_ups fu LEFT JOIN projects p ON fu.project_id = p.id LEFT JOIN action_items ai ON fu.action_item_id = ai.id ORDER BY fu.scheduled_at DESC"
+            f"SELECT fu.*, p.name as project_name, ai.description as action_item_desc FROM follow_ups fu LEFT JOIN projects p ON fu.project_id = p.id LEFT JOIN action_items ai ON fu.action_item_id = ai.id {where_sql} ORDER BY {col_expr} {order}",
+            params,
         )
         follow_ups = await cursor.fetchall()
     return templates.TemplateResponse(
-        request=request, name="follow_ups.html", context={"follow_ups": follow_ups}
+        request=request,
+        name="follow_ups.html",
+        context={
+            "follow_ups": follow_ups,
+            "sort_by": sort_by if sort_by in _FOLLOW_UPS_SORT else "id",
+            "sort_order": sort_order_norm,
+            "sent": sent,
+            "q": q,
+            "filter_qs": filter_qs,
+        },
     )
 
 

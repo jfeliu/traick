@@ -27,6 +27,10 @@ async def send_message(to: str, body: str) -> bool:
     """
     Send a free-form text message (only works within the 24h customer service window).
     """
+    if not settings.whatsapp_token:
+        logger.info("[DEV] send_message to=%s body=%s", to, body)
+        return True
+
     url = f"{META_API_BASE}/{settings.whatsapp_phone_number_id}/messages"
     payload = {
         "messaging_product": "whatsapp",
@@ -59,6 +63,10 @@ async def send_template_message(to: str, body: str) -> bool:
     Send a message using the approved reminder template.
     Works outside the 24h window — use this for proactive reminders.
     """
+    if not settings.whatsapp_token:
+        logger.info("[DEV] send_template_message to=%s body=%s", to, body)
+        return True
+
     url = f"{META_API_BASE}/{settings.whatsapp_phone_number_id}/messages"
     payload = {
         "messaging_product": "whatsapp",

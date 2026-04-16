@@ -7,12 +7,12 @@ class Settings(BaseSettings):
     ollama_api_key: str = "ollama"
     ai_model: str = "qwen2.5:7b"
 
-    # WhatsApp / Meta Cloud API
-    whatsapp_token: str
-    whatsapp_phone_number_id: str
-    whatsapp_business_account_id: str
-    whatsapp_verify_token: str
-    to_phone_number: str  # your personal number — reminders are sent here
+    # WhatsApp / Meta Cloud API (leave empty to run in dev mode without WhatsApp)
+    whatsapp_token: str = ""
+    whatsapp_phone_number_id: str = ""
+    whatsapp_business_account_id: str = ""
+    whatsapp_verify_token: str = "dev"
+    to_phone_number: str = ""  # your personal number — reminders are sent here
 
     # Comma-separated whitelist of numbers whose messages are tracked (E.164 format).
     # e.g. ALLOWED_NUMBERS=+15551234567,+34612345678
@@ -21,8 +21,11 @@ class Settings(BaseSettings):
 
     # Admin
     admin_username: str = "admin"
-    admin_password: str
-    admin_secret_key: str
+    admin_password: str = "admin"
+    admin_secret_key: str = "dev-secret-key-change-in-production"
+
+    # Dev mode — enables /dev/chat browser UI, skips real WhatsApp API calls
+    dev_mode: bool = False
 
     # App
     log_level: str = "INFO"

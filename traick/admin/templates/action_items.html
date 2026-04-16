@@ -2,33 +2,51 @@
 {% set active = "action_items" %}
 {% block title %}Action Items — Traick{% endblock %}
 {% block content %}
+{% macro sort_th(col, label, extra_class="") %}
+  {% set new_order = "asc" if sort_by == col and sort_order == "desc" else "desc" %}
+  <th{% if extra_class %} class="{{ extra_class }}"{% endif %}><a href="?sort_by={{ col }}&sort_order={{ new_order }}{{ filter_qs }}" class="sort-link{% if sort_by == col %} sort-active{% endif %}">{{ label }}{% if sort_by == col %} <span class="sort-indicator">{{ "↑" if sort_order == "asc" else "↓" }}</span>{% endif %}</a></th>
+{% endmacro %}
 <div class="page-header">
     <h1>Action Items</h1>
     <a href="/admin/action_items/new" class="btn btn-primary">+ New Action Item</a>
 </div>
 <div class="card">
+    <div class="table-filters">
+        <form method="get" class="filters-form">
+            <input type="hidden" name="sort_by" value="{{ sort_by }}">
+            <input type="hidden" name="sort_order" value="{{ sort_order }}">
+            <input type="text" name="q" value="{{ q }}" placeholder="Search description…" class="filter-input">
+            <select name="status" class="filter-select" onchange="this.form.submit()">
+                <option value="">All statuses</option>
+                <option value="open"{% if status == "open" %} selected{% endif %}>Open</option>
+                <option value="closed"{% if status == "closed" %} selected{% endif %}>Closed</option>
+            </select>
+            <button type="submit" class="btn btn-secondary btn-sm">Filter</button>
+            {% if q or status %}<a href="?" class="btn btn-secondary btn-sm">Clear</a>{% endif %}
+        </form>
+    </div>
     <div class="table-wrapper">
         <table>
             <thead>
                 <tr>
-                    <th>ID</th>
-                    <th>Project</th>
-                    <th>Description</th>
-                    <th>Deadline</th>
-                    <th>Status</th>
-                    <th>Created</th>
+                    {{ sort_th("id", "ID", "col-hide-sm") }}
+                    {{ sort_th("project_name", "Project") }}
+                    {{ sort_th("description", "Description") }}
+                    {{ sort_th("deadline", "Deadline") }}
+                    {{ sort_th("status", "Status") }}
+                    {{ sort_th("created_at", "Created", "col-hide-sm") }}
                     <th></th>
                 </tr>
             </thead>
             <tbody>
                 {% for ai in action_items %}
                 <tr>
-                    <td>{{ ai["id"] }}</td>
+                    <td class="col-hide-sm">{{ ai["id"] }}</td>
                     <td>{{ ai["project_name"] }}</td>
                     <td>{{ ai["description"] }}</td>
                     <td>{{ ai["deadline"] or "—" }}</td>
                     <td><span class="badge badge-{{ ai['status'] }}">{{ ai["status"] }}</span></td>
-                    <td><span data-utc="{{ ai['created_at'] }}">{{ ai["created_at"] }}</span></td>
+                    <td class="col-hide-sm"><span data-utc="{{ ai['created_at'] }}">{{ ai["created_at"] }}</span></td>
                     <td>
                         <div class="td-actions">
                             <a href="/admin/action_items/{{ ai['id'] }}/edit" class="btn btn-secondary btn-sm">Edit</a>

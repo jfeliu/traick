@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Traick Admin{% endblock %}</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/static/style.css?v=2">
 </head>
 <script>
     document.addEventListener('DOMContentLoaded', function () {
@@ -46,14 +46,19 @@
 <body>
     <nav>
         <span class="nav-brand">tr<span>ai</span>ck</span>
-        <a href="/admin/" class="{% if active == 'dashboard' %}active{% endif %}">Dashboard</a>
-        <a href="/admin/projects" class="{% if active == 'projects' %}active{% endif %}">Projects</a>
-        <a href="/admin/action_items" class="{% if active == 'action_items' %}active{% endif %}">Action Items</a>
-        <a href="/admin/follow_ups" class="{% if active == 'follow_ups' %}active{% endif %}">Follow Ups</a>
-        <a href="/admin/db" class="{% if active == 'db' %}active{% endif %}">DB</a>
-        <form method="post" action="/admin/logout" style="margin-left:auto;">
-            <button type="submit" class="btn btn-secondary btn-sm">Logout</button>
-        </form>
+        <button class="nav-toggle" aria-label="Toggle menu" onclick="this.closest('nav').classList.toggle('nav-open')">
+            <span></span><span></span><span></span>
+        </button>
+        <div class="nav-links">
+            <a href="/admin/" class="{% if active == 'dashboard' %}active{% endif %}">Dashboard</a>
+            <a href="/admin/projects" class="{% if active == 'projects' %}active{% endif %}">Projects</a>
+            <a href="/admin/action_items" class="{% if active == 'action_items' %}active{% endif %}">Action Items</a>
+            <a href="/admin/follow_ups" class="{% if active == 'follow_ups' %}active{% endif %}">Follow Ups</a>
+            <a href="/admin/db" class="{% if active == 'db' %}active{% endif %}">DB</a>
+            <form method="post" action="/admin/logout" class="nav-logout" style="margin-left:auto;">
+                <button type="submit" class="btn btn-secondary btn-sm">Logout</button>
+            </form>
+        </div>
     </nav>
     <main>
         {% block content %}{% endblock %}

@@ -19,6 +19,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from traick.admin.router import router as admin_router
 from traick.config import settings
 from traick.db.database import init_db
+from traick.dev.router import router as dev_router
 from traick.scheduler.jobs import process_pending_messages, send_due_reminders
 from traick.webhook.router import router as webhook_router
 
@@ -72,6 +73,9 @@ app = FastAPI(title="Traick", lifespan=lifespan)
 app.add_middleware(SessionMiddleware, secret_key=settings.admin_secret_key)
 app.include_router(webhook_router)
 app.include_router(admin_router)
+if settings.dev_mode:
+    app.include_router(dev_router)
+    logger.info("Dev mode enabled — chat UI available at /dev/chat")
 app.mount("/static", StaticFiles(directory="traick/admin/static"), name="static")
 
 

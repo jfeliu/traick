@@ -2,28 +2,46 @@
 {% set active = "follow_ups" %}
 {% block title %}Follow Ups — Traick{% endblock %}
 {% block content %}
+{% macro sort_th(col, label, extra_class="") %}
+  {% set new_order = "asc" if sort_by == col and sort_order == "desc" else "desc" %}
+  <th{% if extra_class %} class="{{ extra_class }}"{% endif %}><a href="?sort_by={{ col }}&sort_order={{ new_order }}{{ filter_qs }}" class="sort-link{% if sort_by == col %} sort-active{% endif %}">{{ label }}{% if sort_by == col %} <span class="sort-indicator">{{ "↑" if sort_order == "asc" else "↓" }}</span>{% endif %}</a></th>
+{% endmacro %}
 <div class="page-header">
     <h1>Follow Ups</h1>
     <a href="/admin/follow_ups/new" class="btn btn-primary">+ New Follow Up</a>
 </div>
 <div class="card">
+    <div class="table-filters">
+        <form method="get" class="filters-form">
+            <input type="hidden" name="sort_by" value="{{ sort_by }}">
+            <input type="hidden" name="sort_order" value="{{ sort_order }}">
+            <input type="text" name="q" value="{{ q }}" placeholder="Search message…" class="filter-input">
+            <select name="sent" class="filter-select" onchange="this.form.submit()">
+                <option value="">All</option>
+                <option value="0"{% if sent == "0" %} selected{% endif %}>Pending</option>
+                <option value="1"{% if sent == "1" %} selected{% endif %}>Sent</option>
+            </select>
+            <button type="submit" class="btn btn-secondary btn-sm">Filter</button>
+            {% if q or sent %}<a href="?" class="btn btn-secondary btn-sm">Clear</a>{% endif %}
+        </form>
+    </div>
     <div class="table-wrapper">
         <table>
             <thead>
                 <tr>
-                    <th>ID</th>
-                    <th>Project</th>
-                    <th>Action Item</th>
-                    <th>Message</th>
-                    <th>Scheduled At</th>
-                    <th>Sent</th>
+                    {{ sort_th("id", "ID", "col-hide-sm") }}
+                    {{ sort_th("project_name", "Project") }}
+                    {{ sort_th("action_item_desc", "Action Item") }}
+                    {{ sort_th("message", "Message") }}
+                    {{ sort_th("scheduled_at", "Scheduled At") }}
+                    {{ sort_th("sent", "Sent") }}
                     <th></th>
                 </tr>
             </thead>
             <tbody>
                 {% for fu in follow_ups %}
                 <tr>
-                    <td>{{ fu["id"] }}</td>
+                    <td class="col-hide-sm">{{ fu["id"] }}</td>
                     <td>{{ fu["project_name"] }}</td>
                     <td>{{ fu["action_item_desc"] or "—" }}</td>
                     <td>{{ fu["message"] }}</td>
