@@ -249,6 +249,36 @@ tbody td {
 }
 .filter-select:focus { border-color: #6366f1; }
 
+/* ── Detail page ── */
+.back-link {
+    display: inline-block;
+    font-size: 0.8rem;
+    color: #64748b;
+    text-decoration: none;
+    margin-bottom: 0.3rem;
+}
+.back-link:hover { color: #6366f1; }
+.page-header-left { display: flex; flex-direction: column; }
+.detail-info { margin-bottom: 1.5rem; }
+.detail-grid {
+    display: grid;
+    grid-template-columns: 110px 1fr;
+    gap: 0.5rem 1rem;
+    font-size: 0.875rem;
+}
+.detail-grid dt {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+    padding-top: 0.1rem;
+}
+.detail-grid dd { color: #1e293b; }
+.section-subheader { margin-top: 1.75rem; }
+.section-title { font-size: 1.1rem; font-weight: 700; color: #0f172a; }
+.detail-section { margin-bottom: 1.5rem; }
+
 /* ── Nav toggle (hamburger) — hidden on desktop ── */
 .nav-toggle { display: none; }
 .nav-links { display: contents; }

@@ -250,6 +250,35 @@ async def _generate_project_ai_content(
             )
 
 
+@protected.get("/projects/{project_id}", response_class=HTMLResponse)
+async def view_project(request: Request, project_id: int):
+    async with aiosqlite.connect(settings.db_path) as db:
+        db.row_factory = aiosqlite.Row
+        cursor = await db.execute("SELECT * FROM projects WHERE id = ?", (project_id,))
+        project = await cursor.fetchone()
+        if not project:
+            raise HTTPException(status_code=404, detail="Project not found")
+        cursor = await db.execute(
+            "SELECT * FROM action_items WHERE project_id = ? ORDER BY status ASC, created_at DESC",
+            (project_id,),
+        )
+        action_items = await cursor.fetchall()
+        cursor = await db.execute(
+            """SELECT fu.*, ai.description as action_item_desc
+               FROM follow_ups fu
+               LEFT JOIN action_items ai ON fu.action_item_id = ai.id
+               WHERE fu.project_id = ?
+               ORDER BY fu.scheduled_at ASC""",
+            (project_id,),
+        )
+        follow_ups = await cursor.fetchall()
+    return templates.TemplateResponse(
+        request=request,
+        name="project_detail.html",
+        context={"project": project, "action_items": action_items, "follow_ups": follow_ups},
+    )
+
+
 @protected.get("/projects/{project_id}/edit", response_class=HTMLResponse)
 async def edit_project_form(request: Request, project_id: int):
     async with aiosqlite.connect(settings.db_path) as db:
@@ -333,13 +362,15 @@ async def list_action_items(
 
 
 @protected.get("/action_items/new", response_class=HTMLResponse)
-async def new_action_item_form(request: Request):
+async def new_action_item_form(request: Request, project_id: int | None = Query(None)):
     async with aiosqlite.connect(settings.db_path) as db:
         db.row_factory = aiosqlite.Row
         cursor = await db.execute("SELECT id, name FROM projects ORDER BY name")
         projects = await cursor.fetchall()
     return templates.TemplateResponse(
-        request=request, name="action_item_form.html", context={"projects": projects}
+        request=request,
+        name="action_item_form.html",
+        context={"projects": projects, "preselect_project_id": project_id},
     )
 
 
@@ -451,7 +482,7 @@ async def list_follow_ups(
 
 
 @protected.get("/follow_ups/new", response_class=HTMLResponse)
-async def new_follow_up_form(request: Request):
+async def new_follow_up_form(request: Request, project_id: int | None = Query(None)):
     async with aiosqlite.connect(settings.db_path) as db:
         db.row_factory = aiosqlite.Row
         cursor = await db.execute("SELECT id, name FROM projects ORDER BY name")
@@ -463,7 +494,7 @@ async def new_follow_up_form(request: Request):
     return templates.TemplateResponse(
         request=request,
         name="follow_up_form.html",
-        context={"projects": projects, "action_items": action_items},
+        context={"projects": projects, "action_items": action_items, "preselect_project_id": project_id},
     )
 
 
