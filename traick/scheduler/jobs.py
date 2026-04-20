@@ -40,6 +40,7 @@ async def _process_group(owner_number: str, messages: list[dict]) -> None:
             status=update.project_status or "active",
         )
 
+        first_action_item_id: int | None = None
         for item in update.action_items:
             deadline_ts: int | None = None
             if item.deadline_iso:
@@ -51,17 +52,19 @@ async def _process_group(owner_number: str, messages: list[dict]) -> None:
                 except ValueError:
                     logger.warning("Bad deadline format: %s", item.deadline_iso)
 
-            await create_action_item(
+            action_item_id = await create_action_item(
                 project_id=project_id,
                 description=item.description,
                 deadline=deadline_ts,
             )
+            if first_action_item_id is None:
+                first_action_item_id = action_item_id
 
         if update.follow_up_message and update.follow_up_days is not None:
             scheduled_at = int(time.time()) + update.follow_up_days * 86400
             await schedule_follow_up(
                 project_id=project_id,
-                action_item_id=None,
+                action_item_id=first_action_item_id,
                 message=update.follow_up_message,
                 scheduled_at=scheduled_at,
             )

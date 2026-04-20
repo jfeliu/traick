@@ -157,7 +157,7 @@ async def create_project(
 
     await _generate_project_ai_content(project_id, name, description)
 
-    return RedirectResponse("/admin/projects", status_code=303)
+    return RedirectResponse(f"/admin/projects/{project_id}", status_code=303)
 
 
 async def _generate_project_ai_content(
@@ -173,6 +173,7 @@ async def _generate_project_ai_content(
     )
 
     for update in result.updates:
+        first_action_item_id: int | None = None
         for item in update.action_items:
             deadline_ts: int | None = None
             if item.deadline_iso:
@@ -184,16 +185,18 @@ async def _generate_project_ai_content(
                 except ValueError:
                     logger.warning("Bad deadline format: %s", item.deadline_iso)
 
-            await repo_create_action_item(
+            action_item_id = await repo_create_action_item(
                 project_id=project_id,
                 description=item.description,
                 deadline=deadline_ts,
             )
+            if first_action_item_id is None:
+                first_action_item_id = action_item_id
 
         if update.follow_up_message and update.follow_up_days is not None:
             await repo_schedule_follow_up(
                 project_id=project_id,
-                action_item_id=None,
+                action_item_id=first_action_item_id,
                 message=update.follow_up_message,
                 scheduled_at=int(time.time()) + update.follow_up_days * 86400,
             )
@@ -218,6 +221,7 @@ async def _generate_project_ai_content(
     )
 
     for update in result.updates:
+        first_action_item_id: int | None = None
         for item in update.action_items:
             deadline_ts: int | None = None
             if item.deadline_iso:
@@ -229,16 +233,18 @@ async def _generate_project_ai_content(
                 except ValueError:
                     logger.warning("Bad deadline format: %s", item.deadline_iso)
 
-            await repo_create_action_item(
+            action_item_id = await repo_create_action_item(
                 project_id=project_id,
                 description=item.description,
                 deadline=deadline_ts,
             )
+            if first_action_item_id is None:
+                first_action_item_id = action_item_id
 
         if update.follow_up_message and update.follow_up_days is not None:
             await repo_schedule_follow_up(
                 project_id=project_id,
-                action_item_id=None,
+                action_item_id=first_action_item_id,
                 message=update.follow_up_message,
                 scheduled_at=int(time.time()) + update.follow_up_days * 86400,
             )
