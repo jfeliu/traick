@@ -305,13 +305,14 @@ async def update_project(
     owner_number: str = Form(...),
     name: str = Form(...),
     description: str = Form(""),
+    status: str = Form("active"),
 ):
     async with aiosqlite.connect(settings.db_path) as db:
         await db.execute(
             """
-            UPDATE projects SET owner_number = ?, name = ?, description = ?, updated_at = datetime('now') WHERE id = ?
+            UPDATE projects SET owner_number = ?, name = ?, description = ?, status = ?, updated_at = datetime('now') WHERE id = ?
             """,
-            (owner_number, name, description, project_id),
+            (owner_number, name, description, status, project_id),
         )
         await db.commit()
     return RedirectResponse("/admin/projects", status_code=303)
@@ -425,13 +426,14 @@ async def update_action_item(
     project_id: int = Form(...),
     description: str = Form(...),
     deadline: str = Form(""),
+    status: str = Form("open"),
 ):
     async with aiosqlite.connect(settings.db_path) as db:
         await db.execute(
             """
-            UPDATE action_items SET project_id = ?, description = ?, deadline = ? WHERE id = ?
+            UPDATE action_items SET project_id = ?, description = ?, deadline = ?, status = ? WHERE id = ?
             """,
-            (project_id, description, deadline, action_item_id),
+            (project_id, description, deadline, status, action_item_id),
         )
         await db.commit()
     return RedirectResponse("/admin/action_items", status_code=303)
@@ -559,17 +561,19 @@ async def update_follow_up(
     action_item_id: int = Form(...),
     message: str = Form(...),
     scheduled_at: str = Form(...),
+    sent: int = Form(0),
 ):
     async with aiosqlite.connect(settings.db_path) as db:
         await db.execute(
             """
-            UPDATE follow_ups SET project_id = ?, action_item_id = ?, message = ?, scheduled_at = ? WHERE id = ?
+            UPDATE follow_ups SET project_id = ?, action_item_id = ?, message = ?, scheduled_at = ?, sent = ? WHERE id = ?
             """,
             (
                 project_id,
                 action_item_id,
                 message,
                 scheduled_at.replace("T", " "),
+                sent,
                 follow_up_id,
             ),
         )

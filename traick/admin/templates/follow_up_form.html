@@ -31,6 +31,15 @@
             <label>Scheduled At</label>
             <input type="datetime-local" name="scheduled_at" {% if follow_up %}data-utc-value="{{ follow_up['scheduled_at'] }}"{% endif %} required>
         </div>
+        {% if follow_up %}
+        <div class="form-group">
+            <label>Status</label>
+            <select name="sent">
+                <option value="0" {% if not follow_up['sent'] %}selected{% endif %}>Pending</option>
+                <option value="1" {% if follow_up['sent'] %}selected{% endif %}>Sent</option>
+            </select>
+        </div>
+        {% endif %}
         <div class="form-actions">
             <button type="submit" class="btn btn-primary">Save</button>
             <a href="/admin/follow_ups" class="btn btn-secondary">Cancel</a>

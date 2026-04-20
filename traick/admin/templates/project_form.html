@@ -19,6 +19,16 @@
             <label>Description</label>
             <input type="text" name="description" value="{{ project['description'] if project else '' }}">
         </div>
+        {% if project %}
+        <div class="form-group">
+            <label>Status</label>
+            <select name="status">
+                <option value="active" {% if project['status'] == 'active' %}selected{% endif %}>Active</option>
+                <option value="paused" {% if project['status'] == 'paused' %}selected{% endif %}>Paused</option>
+                <option value="done" {% if project['status'] == 'done' %}selected{% endif %}>Done</option>
+            </select>
+        </div>
+        {% endif %}
         <div class="form-actions">
             <button type="submit" class="btn btn-primary">Save</button>
             <a href="/admin/projects" class="btn btn-secondary">Cancel</a>
