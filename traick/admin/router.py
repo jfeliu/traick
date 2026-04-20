@@ -314,6 +314,15 @@ async def update_project(
             """,
             (owner_number, name, description, status, project_id),
         )
+        if status == "done":
+            await db.execute(
+                "UPDATE action_items SET status = 'closed' WHERE project_id = ? AND status = 'open'",
+                (project_id,),
+            )
+            await db.execute(
+                "DELETE FROM follow_ups WHERE project_id = ? AND sent = 0",
+                (project_id,),
+            )
         await db.commit()
     return RedirectResponse("/admin/projects", status_code=303)
 
