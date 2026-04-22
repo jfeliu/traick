@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     admin_username: str = "admin"
     admin_password: str = "admin"
     admin_secret_key: str = "dev-secret-key-change-in-production"
+    # Optional custom hostname that maps to the /admin UI (e.g. admin.example.com).
+    # When set, requests arriving on this host are transparently rewritten to /admin/*.
+    admin_hostname: str = ""
 
     # Dev mode — enables /dev/chat browser UI, skips real WhatsApp API calls
     dev_mode: bool = False

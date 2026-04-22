@@ -69,8 +69,31 @@ async def lifespan(app: FastAPI):
     logger.info("Scheduler stopped")
 
 
+class _AdminSubdomainMiddleware:
+    """Rewrite requests from the admin subdomain so /foo is served as /admin/foo.
+
+    Paths that already start with /admin or /static are left untouched so that
+    static assets and direct /admin/* links continue to work normally.
+    """
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] == "http" and settings.admin_hostname:
+            headers = {k: v for k, v in scope["headers"]}
+            host = headers.get(b"host", b"").decode().split(":")[0]
+            if host == settings.admin_hostname:
+                path: str = scope["path"]
+                if not path.startswith("/admin") and not path.startswith("/static"):
+                    new_path = "/admin" + path
+                    scope = {**scope, "path": new_path, "raw_path": new_path.encode()}
+        await self.app(scope, receive, send)
+
+
 app = FastAPI(title="Traick", lifespan=lifespan)
 app.add_middleware(SessionMiddleware, secret_key=settings.admin_secret_key)
+app.add_middleware(_AdminSubdomainMiddleware)
 app.include_router(webhook_router)
 app.include_router(admin_router)
 if settings.dev_mode:
