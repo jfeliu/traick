@@ -72,7 +72,7 @@ async def generate_reply(
 
     client = get_client()
     try:
-        logger.debug("Responder prompt:\n%s", user_content)
+        logger.info("Responder prompt:\n%s", user_content)
         response = await client.chat.completions.create(
             model=settings.ai_model,
             max_tokens=512,
@@ -82,7 +82,7 @@ async def generate_reply(
             ],
         )
         raw = response.choices[0].message.content.strip()
-        logger.debug("Responder raw response:\n%s", raw)
+        logger.info("Responder raw response:\n%s", raw)
         # Guard against models echoing back context after the reply — take only
         # the first paragraph (content before the first blank line).
         reply = raw.split("\n\n")[0].strip()

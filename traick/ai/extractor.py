@@ -126,7 +126,7 @@ async def extract_from_messages(
     client = instructor.from_openai(base_client, mode=instructor.Mode.JSON)
 
     try:
-        logger.debug("Extractor prompt:\n%s", user_content)
+        logger.info("Extractor prompt:\n%s", user_content)
         result = await client.chat.completions.create(
             model=settings.ai_model,
             max_tokens=4096,
@@ -136,7 +136,7 @@ async def extract_from_messages(
                 {"role": "user", "content": user_content},
             ],
         )
-        logger.debug("Extractor response:\n%s", result.model_dump_json(indent=2))
+        logger.info("Extractor response:\n%s", result.model_dump_json(indent=2))
 
         logger.info(
             "Extracted %d project updates from %d messages",

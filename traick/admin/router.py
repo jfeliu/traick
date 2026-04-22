@@ -269,54 +269,6 @@ async def _generate_project_ai_content(
             )
 
 
-async def _generate_project_ai_content(
-    project_id: int, name: str, description: str
-) -> None:
-    """Use the AI extractor to create action items and follow-ups for a new project."""
-    if not description:
-        return
-
-    synthetic_message = f"Project: {name}\n{description}"
-    result = await extract_from_messages(
-        messages=[{"body": synthetic_message}],
-    )
-
-    for update in result.updates:
-        first_action_item_id: int | None = None
-        for item in update.action_items:
-            deadline_ts: int | None = None
-            if item.deadline_iso:
-                try:
-                    dt = datetime.fromisoformat(item.deadline_iso).replace(
-                        tzinfo=timezone.utc
-                    )
-                    deadline_ts = int(dt.timestamp())
-                except ValueError:
-                    logger.warning("Bad deadline format: %s", item.deadline_iso)
-
-            action_item_id = await repo_create_action_item(
-                project_id=project_id,
-                description=item.description,
-                deadline=deadline_ts,
-            )
-            if first_action_item_id is None:
-                first_action_item_id = action_item_id
-
-        if update.follow_up_message and update.follow_up_days is not None:
-            await repo_schedule_follow_up(
-                project_id=project_id,
-                action_item_id=first_action_item_id,
-                message=update.follow_up_message,
-                scheduled_at=int(time.time()) + update.follow_up_days * 86400,
-            )
-            logger.info(
-                "Scheduled follow-up for project %d ('%s') in %d days",
-                project_id,
-                name,
-                update.follow_up_days,
-            )
-
-
 @protected.get("/projects/{project_id}", response_class=HTMLResponse)
 async def view_project(request: Request, project_id: int):
     async with aiosqlite.connect(settings.db_path) as db:
