@@ -55,7 +55,7 @@
                     <td class="col-hide-sm"><span data-utc="{{ ai['created_at'] }}">{{ ai['created_at'] }}</span></td>
                     <td>
                         <div class="td-actions">
-                            <a href="/admin/action_items/{{ ai['id'] }}/edit" class="btn btn-secondary btn-sm">Edit</a>
+                            <a href="/admin/action_items/{{ ai['id'] }}/edit?back_project_id={{ project['id'] }}" class="btn btn-secondary btn-sm">Edit</a>
                             <form action="/admin/action_items/{{ ai['id'] }}/delete" method="post">
                                 <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Delete this action item?');">Delete</button>
                             </form>
@@ -103,7 +103,7 @@
                     </td>
                     <td>
                         <div class="td-actions">
-                            <a href="/admin/follow_ups/{{ fu['id'] }}/edit" class="btn btn-secondary btn-sm">Edit</a>
+                            <a href="/admin/follow_ups/{{ fu['id'] }}/edit?back_project_id={{ project['id'] }}" class="btn btn-secondary btn-sm">Edit</a>
                             <form action="/admin/follow_ups/{{ fu['id'] }}/delete" method="post">
                                 <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Delete this follow up?');">Delete</button>
                             </form>

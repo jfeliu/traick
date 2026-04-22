@@ -7,6 +7,8 @@
 </div>
 <div class="card card-body form-card">
     <form method="post">
+        {% set _back = back_project_id or preselect_project_id %}
+        {% if _back %}<input type="hidden" name="back_project_id" value="{{ _back }}">{% endif %}
         <div class="form-group">
             <label>Project</label>
             <select name="project_id" id="project_select" required>
@@ -42,7 +44,7 @@
         {% endif %}
         <div class="form-actions">
             <button type="submit" class="btn btn-primary">Save</button>
-            <a href="/admin/follow_ups" class="btn btn-secondary">Cancel</a>
+            <a href="{% if _back %}/admin/projects/{{ _back }}{% else %}/admin/follow_ups{% endif %}" class="btn btn-secondary">Cancel</a>
         </div>
     </form>
 </div>

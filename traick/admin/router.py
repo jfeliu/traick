@@ -396,6 +396,7 @@ async def create_action_item(
     project_id: int = Form(...),
     description: str = Form(...),
     deadline: str = Form(""),
+    back_project_id: int | None = Form(None),
 ):
     async with aiosqlite.connect(settings.db_path) as db:
         await db.execute(
@@ -406,11 +407,12 @@ async def create_action_item(
             (project_id, description, deadline),
         )
         await db.commit()
-    return RedirectResponse("/admin/action_items", status_code=303)
+    redirect = f"/admin/projects/{back_project_id}" if back_project_id else "/admin/action_items"
+    return RedirectResponse(redirect, status_code=303)
 
 
 @protected.get("/action_items/{action_item_id}/edit", response_class=HTMLResponse)
-async def edit_action_item_form(request: Request, action_item_id: int):
+async def edit_action_item_form(request: Request, action_item_id: int, back_project_id: int | None = Query(None)):
     async with aiosqlite.connect(settings.db_path) as db:
         db.row_factory = aiosqlite.Row
         cursor = await db.execute(
@@ -424,7 +426,7 @@ async def edit_action_item_form(request: Request, action_item_id: int):
     return templates.TemplateResponse(
         request=request,
         name="action_item_form.html",
-        context={"action_item": action_item, "projects": projects},
+        context={"action_item": action_item, "projects": projects, "back_project_id": back_project_id},
     )
 
 
@@ -436,6 +438,7 @@ async def update_action_item(
     description: str = Form(...),
     deadline: str = Form(""),
     status: str = Form("open"),
+    back_project_id: int | None = Form(None),
 ):
     async with aiosqlite.connect(settings.db_path) as db:
         await db.execute(
@@ -445,7 +448,8 @@ async def update_action_item(
             (project_id, description, deadline, status, action_item_id),
         )
         await db.commit()
-    return RedirectResponse("/admin/action_items", status_code=303)
+    redirect = f"/admin/projects/{back_project_id}" if back_project_id else "/admin/action_items"
+    return RedirectResponse(redirect, status_code=303)
 
 
 @protected.post("/action_items/{action_item_id}/delete")
@@ -522,6 +526,7 @@ async def create_follow_up(
     action_item_id: int = Form(...),
     message: str = Form(...),
     scheduled_at: str = Form(...),
+    back_project_id: int | None = Form(None),
 ):
     async with aiosqlite.connect(settings.db_path) as db:
         await db.execute(
@@ -532,11 +537,12 @@ async def create_follow_up(
             (project_id, action_item_id, message, scheduled_at.replace("T", " ")),
         )
         await db.commit()
-    return RedirectResponse("/admin/follow_ups", status_code=303)
+    redirect = f"/admin/projects/{back_project_id}" if back_project_id else "/admin/follow_ups"
+    return RedirectResponse(redirect, status_code=303)
 
 
 @protected.get("/follow_ups/{follow_up_id}/edit", response_class=HTMLResponse)
-async def edit_follow_up_form(request: Request, follow_up_id: int):
+async def edit_follow_up_form(request: Request, follow_up_id: int, back_project_id: int | None = Query(None)):
     async with aiosqlite.connect(settings.db_path) as db:
         db.row_factory = aiosqlite.Row
         cursor = await db.execute(
@@ -558,6 +564,7 @@ async def edit_follow_up_form(request: Request, follow_up_id: int):
             "follow_up": follow_up,
             "projects": projects,
             "action_items": action_items,
+            "back_project_id": back_project_id,
         },
     )
 
@@ -571,6 +578,7 @@ async def update_follow_up(
     message: str = Form(...),
     scheduled_at: str = Form(...),
     sent: int = Form(0),
+    back_project_id: int | None = Form(None),
 ):
     async with aiosqlite.connect(settings.db_path) as db:
         await db.execute(
@@ -587,7 +595,8 @@ async def update_follow_up(
             ),
         )
         await db.commit()
-    return RedirectResponse("/admin/follow_ups", status_code=303)
+    redirect = f"/admin/projects/{back_project_id}" if back_project_id else "/admin/follow_ups"
+    return RedirectResponse(redirect, status_code=303)
 
 
 @protected.post("/follow_ups/{follow_up_id}/delete")
