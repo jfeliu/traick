@@ -5,10 +5,126 @@
 <div class="page-header">
     <h1>Dashboard</h1>
 </div>
+
 <div class="stats-grid">
     <div class="stat-card">
-        <div class="stat-label">Projects</div>
-        <div class="stat-value">{{ project_count }}</div>
+        <div class="stat-label">Active Projects</div>
+        <div class="stat-value">{{ active_projects }}</div>
     </div>
+    <div class="stat-card" style="border-left-color:#3b82f6;">
+        <div class="stat-label">Open Action Items</div>
+        <div class="stat-value">{{ open_action_items }}</div>
+    </div>
+    <div class="stat-card" style="border-left-color:#f59e0b;">
+        <div class="stat-label">Pending Follow-ups</div>
+        <div class="stat-value">{{ pending_follow_ups }}</div>
+    </div>
+    <div class="stat-card" style="border-left-color:#94a3b8;">
+        <div class="stat-label">Unprocessed Messages</div>
+        <div class="stat-value">{{ unprocessed_messages }}</div>
+    </div>
+</div>
+
+<div class="dash-grid">
+
+    <div>
+        <div class="page-header section-subheader">
+            <h2 class="section-title">Active Projects</h2>
+            <a href="/admin/projects" class="btn btn-secondary btn-sm">View all</a>
+        </div>
+        <div class="card detail-section">
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Owner</th>
+                            <th>Open Items</th>
+                            <th>Updated</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in recent_projects %}
+                        <tr>
+                            <td><a href="/admin/projects/{{ p['id'] }}" class="row-link">{{ p['name'] }}</a></td>
+                            <td>{{ p['owner_number'] }}</td>
+                            <td>
+                                {% if p['open_items'] %}
+                                <span class="badge badge-open">{{ p['open_items'] }}</span>
+                                {% else %}
+                                <span style="color:#94a3b8;">—</span>
+                                {% endif %}
+                            </td>
+                            <td><span data-utc="{{ p['updated_at'] }}">{{ p['updated_at'] }}</span></td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:2rem;">No active projects.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div>
+        <div class="page-header section-subheader">
+            <h2 class="section-title">Upcoming Follow-ups</h2>
+            <a href="/admin/follow_ups" class="btn btn-secondary btn-sm">View all</a>
+        </div>
+        <div class="card detail-section">
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Project</th>
+                            <th>Message</th>
+                            <th>Scheduled</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for fu in upcoming_follow_ups %}
+                        <tr>
+                            <td><a href="/admin/projects/{{ fu['project_id'] }}" class="row-link">{{ fu['project_name'] }}</a></td>
+                            <td>{{ fu['message'] }}</td>
+                            <td><span data-utc="{{ fu['scheduled_at'] }}">{{ fu['scheduled_at'] }}</span></td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="3" style="text-align:center;color:#94a3b8;padding:2rem;">No pending follow-ups.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="page-header section-subheader">
+            <h2 class="section-title">Upcoming Deadlines</h2>
+            <a href="/admin/action_items" class="btn btn-secondary btn-sm">View all</a>
+        </div>
+        <div class="card detail-section">
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Project</th>
+                            <th>Action Item</th>
+                            <th>Deadline</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ai in items_with_deadlines %}
+                        <tr>
+                            <td><a href="/admin/projects/{{ ai['project_id'] }}" class="row-link">{{ ai['project_name'] }}</a></td>
+                            <td>{{ ai['description'] }}</td>
+                            <td>{{ ai['deadline'] }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="3" style="text-align:center;color:#94a3b8;padding:2rem;">No deadlines set.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
 </div>
 {% endblock %}

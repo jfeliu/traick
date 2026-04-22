@@ -249,6 +249,25 @@ tbody td {
 }
 .filter-select:focus { border-color: #6366f1; }
 
+/* ── Dashboard two-column grid ── */
+.dash-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 2rem;
+    align-items: start;
+}
+@media (max-width: 900px) {
+    .dash-grid { grid-template-columns: 1fr; }
+}
+
+/* ── Inline table link ── */
+.row-link {
+    color: #1e293b;
+    text-decoration: none;
+    font-weight: 500;
+}
+.row-link:hover { color: #6366f1; text-decoration: underline; }
+
 /* ── Detail page ── */
 .back-link {
     display: inline-block;

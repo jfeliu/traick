@@ -77,10 +77,71 @@ async def logout(request: Request):
 @protected.get("/", response_class=HTMLResponse)
 async def admin_dashboard(request: Request):
     async with aiosqlite.connect(settings.db_path) as db:
-        cursor = await db.execute("SELECT COUNT(*) FROM projects")
-        (count,) = await cursor.fetchone()
+        db.row_factory = aiosqlite.Row
+
+        (active_projects,) = await (await db.execute(
+            "SELECT COUNT(*) FROM projects WHERE status = 'active'"
+        )).fetchone()
+        (open_action_items,) = await (await db.execute(
+            "SELECT COUNT(*) FROM action_items WHERE status = 'open'"
+        )).fetchone()
+        (pending_follow_ups,) = await (await db.execute(
+            "SELECT COUNT(*) FROM follow_ups WHERE sent = 0"
+        )).fetchone()
+        (unprocessed_messages,) = await (await db.execute(
+            "SELECT COUNT(*) FROM raw_messages WHERE processed = 0"
+        )).fetchone()
+
+        cursor = await db.execute(
+            """
+            SELECT p.id, p.name, p.owner_number, p.status, p.updated_at,
+                   COUNT(CASE WHEN ai.status = 'open' THEN 1 END) AS open_items
+            FROM projects p
+            LEFT JOIN action_items ai ON p.id = ai.project_id
+            WHERE p.status = 'active'
+            GROUP BY p.id
+            ORDER BY p.updated_at DESC
+            LIMIT 6
+            """
+        )
+        recent_projects = await cursor.fetchall()
+
+        cursor = await db.execute(
+            """
+            SELECT fu.id, fu.message, fu.scheduled_at, p.id AS project_id, p.name AS project_name
+            FROM follow_ups fu
+            JOIN projects p ON fu.project_id = p.id
+            WHERE fu.sent = 0
+            ORDER BY fu.scheduled_at ASC
+            LIMIT 5
+            """
+        )
+        upcoming_follow_ups = await cursor.fetchall()
+
+        cursor = await db.execute(
+            """
+            SELECT ai.id, ai.description, ai.deadline, p.id AS project_id, p.name AS project_name
+            FROM action_items ai
+            JOIN projects p ON ai.project_id = p.id
+            WHERE ai.status = 'open' AND ai.deadline IS NOT NULL
+            ORDER BY ai.deadline ASC
+            LIMIT 5
+            """
+        )
+        items_with_deadlines = await cursor.fetchall()
+
     return templates.TemplateResponse(
-        request=request, name="dashboard.html", context={"project_count": count}
+        request=request,
+        name="dashboard.html",
+        context={
+            "active_projects": active_projects,
+            "open_action_items": open_action_items,
+            "pending_follow_ups": pending_follow_ups,
+            "unprocessed_messages": unprocessed_messages,
+            "recent_projects": recent_projects,
+            "upcoming_follow_ups": upcoming_follow_ups,
+            "items_with_deadlines": items_with_deadlines,
+        },
     )
 
 
