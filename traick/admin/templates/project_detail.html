@@ -57,6 +57,7 @@
                         <div class="td-actions">
                             <a href="/admin/action_items/{{ ai['id'] }}/edit?back_project_id={{ project['id'] }}" class="btn btn-secondary btn-sm">Edit</a>
                             <form action="/admin/action_items/{{ ai['id'] }}/delete" method="post">
+                                <input type="hidden" name="back_project_id" value="{{ project['id'] }}">
                                 <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Delete this action item?');">Delete</button>
                             </form>
                         </div>
@@ -105,6 +106,7 @@
                         <div class="td-actions">
                             <a href="/admin/follow_ups/{{ fu['id'] }}/edit?back_project_id={{ project['id'] }}" class="btn btn-secondary btn-sm">Edit</a>
                             <form action="/admin/follow_ups/{{ fu['id'] }}/delete" method="post">
+                                <input type="hidden" name="back_project_id" value="{{ project['id'] }}">
                                 <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Delete this follow up?');">Delete</button>
                             </form>
                         </div>

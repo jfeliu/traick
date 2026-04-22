@@ -514,11 +514,12 @@ async def update_action_item(
 
 
 @protected.post("/action_items/{action_item_id}/delete")
-async def delete_action_item(request: Request, action_item_id: int):
+async def delete_action_item(request: Request, action_item_id: int, back_project_id: int | None = Form(None)):
     async with aiosqlite.connect(settings.db_path) as db:
         await db.execute("DELETE FROM action_items WHERE id = ?", (action_item_id,))
         await db.commit()
-    return RedirectResponse("/admin/action_items", status_code=303)
+    redirect = f"/admin/projects/{back_project_id}" if back_project_id else "/admin/action_items"
+    return RedirectResponse(redirect, status_code=303)
 
 
 @protected.get("/follow_ups", response_class=HTMLResponse)
@@ -661,11 +662,12 @@ async def update_follow_up(
 
 
 @protected.post("/follow_ups/{follow_up_id}/delete")
-async def delete_follow_up(request: Request, follow_up_id: int):
+async def delete_follow_up(request: Request, follow_up_id: int, back_project_id: int | None = Form(None)):
     async with aiosqlite.connect(settings.db_path) as db:
         await db.execute("DELETE FROM follow_ups WHERE id = ?", (follow_up_id,))
         await db.commit()
-    return RedirectResponse("/admin/follow_ups", status_code=303)
+    redirect = f"/admin/projects/{back_project_id}" if back_project_id else "/admin/follow_ups"
+    return RedirectResponse(redirect, status_code=303)
 
 
 @protected.get("/db", response_class=HTMLResponse)
