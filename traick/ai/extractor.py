@@ -45,7 +45,7 @@ Schema:
 }
 
 Rules:
-- Extract action items and deadlines from the messages.
+- Extract action items and deadlines from the messages. Every active project must have at least one action item — if no specific sub-tasks are mentioned, create one action item that captures the main thing to be done.
 - If multiple messages refer to the same project, merge them.
 - For deadlines, use ISO 8601 date format (e.g. "2026-04-15") or null.
 - Always suggest a follow_up_message and follow_up_days for any active project — be proactive. Choose a sensible number of days based on urgency (same day = 1, this week = 3, longer term = 7+).
