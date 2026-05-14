@@ -192,13 +192,23 @@ async def new_project_form(request: Request):
     return templates.TemplateResponse(request=request, name="project_form.html")
 
 
+def _name_from_description(description: str) -> str:
+    text = description.strip()
+    if not text:
+        return "Unnamed Project"
+    if len(text) <= 50:
+        return text
+    truncated = text[:50].rsplit(" ", 1)[0]
+    return truncated or text[:50]
+
+
 @protected.post("/projects/new")
 async def create_project(
     request: Request,
     owner_number: str = Form(...),
-    name: str = Form(...),
     description: str = Form(""),
 ):
+    name = _name_from_description(description)
     async with aiosqlite.connect(settings.db_path) as db:
         db.row_factory = aiosqlite.Row
         await db.execute(
