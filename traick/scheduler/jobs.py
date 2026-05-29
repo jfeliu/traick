@@ -10,11 +10,12 @@ import logging
 import time
 from datetime import datetime, timezone
 
-from traick.ai.extractor import extract_from_messages
+from traick.ai.extractor import extract_from_messages, generate_follow_up_for_project
 from traick.config import settings
 from traick.db.repository import (
     create_action_item,
     get_active_projects,
+    get_active_projects_without_pending_followups,
     get_due_follow_ups,
     get_pending_messages,
     mark_follow_up_sent,
@@ -98,6 +99,33 @@ async def process_pending_messages() -> None:
     processed_ids = [m["id"] for m in messages]
     await mark_messages_processed(processed_ids)
     logger.info("Done — marked %d messages as processed", len(processed_ids))
+
+
+async def ensure_active_project_followups() -> None:
+    """
+    Daily safety-net: find active projects with no pending follow-up and schedule one.
+    Catches any project the extractor processed without a reminder suggestion.
+    """
+    projects = await get_active_projects_without_pending_followups()
+    if not projects:
+        return
+
+    logger.info("Found %d active project(s) without a pending follow-up", len(projects))
+    for project in projects:
+        message, days = await generate_follow_up_for_project(project)
+        scheduled_at = int(time.time()) + days * 86400
+        await schedule_follow_up(
+            project_id=project["id"],
+            action_item_id=None,
+            message=message,
+            scheduled_at=scheduled_at,
+        )
+        logger.info(
+            "Auto-scheduled follow-up for '%s' (owner %s) in %d days",
+            project["name"],
+            project["owner_number"],
+            days,
+        )
 
 
 async def send_due_reminders() -> None:

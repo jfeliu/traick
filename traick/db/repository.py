@@ -106,13 +106,47 @@ async def get_active_projects(owner_number: str | None = None) -> list[dict]:
     async with get_db() as db:
         if owner_number:
             cursor = await db.execute(
-                "SELECT * FROM projects WHERE status = 'active' AND owner_number = ? ORDER BY updated_at DESC",
+                """
+                SELECT p.*, GROUP_CONCAT(ai.description, ' | ') AS open_tasks
+                FROM projects p
+                LEFT JOIN action_items ai ON ai.project_id = p.id AND ai.status = 'open'
+                WHERE p.status = 'active' AND p.owner_number = ?
+                GROUP BY p.id
+                ORDER BY p.updated_at DESC
+                """,
                 (owner_number,),
             )
         else:
             cursor = await db.execute(
-                "SELECT * FROM projects WHERE status = 'active' ORDER BY updated_at DESC"
+                """
+                SELECT p.*, GROUP_CONCAT(ai.description, ' | ') AS open_tasks
+                FROM projects p
+                LEFT JOIN action_items ai ON ai.project_id = p.id AND ai.status = 'open'
+                WHERE p.status = 'active'
+                GROUP BY p.id
+                ORDER BY p.updated_at DESC
+                """
             )
+        rows = await cursor.fetchall()
+        return [dict(r) for r in rows]
+
+
+async def get_active_projects_without_pending_followups() -> list[dict]:
+    async with get_db() as db:
+        cursor = await db.execute(
+            """
+            SELECT p.*
+            FROM projects p
+            WHERE p.status = 'active'
+            AND NOT EXISTS (
+                SELECT 1 FROM follow_ups f
+                WHERE f.project_id = p.id
+                  AND f.sent = 0
+                  AND f.scheduled_at > datetime('now')
+            )
+            ORDER BY p.updated_at ASC
+            """
+        )
         rows = await cursor.fetchall()
         return [dict(r) for r in rows]
 

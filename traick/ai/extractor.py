@@ -114,11 +114,20 @@ async def extract_from_messages(
 
     context = ""
     if existing_projects:
-        project_lines = "\n".join(
-            f"- {p['name']}: {p['description'] or 'no description'} (status: {p['status']})"
-            for p in existing_projects
+        project_lines = []
+        for p in existing_projects:
+            line = f'- "{p["name"]}": {p["description"] or "no description"} (status: {p["status"]})'
+            if p.get("open_tasks"):
+                line += f'\n  Open tasks: {p["open_tasks"]}'
+            project_lines.append(line)
+        context = (
+            "\n\nExisting projects already tracked for this person:\n"
+            + "\n".join(project_lines)
+            + "\n\nIMPORTANT: Before creating a new project, check whether the message could be "
+            "an update to any existing project based on topic similarity — not just exact name. "
+            "If a match is plausible, update the existing project using its EXACT name as listed above. "
+            "Only create a new project when the content clearly doesn't relate to any existing one."
         )
-        context = f"\n\nExisting projects already tracked for this person:\n{project_lines}\n\nMatch messages to these projects by name when relevant. Use the exact existing project name if the message clearly refers to it."
 
     user_content = f"Analyze these WhatsApp messages and extract project information:{context}\n\nMessages:\n{formatted}"
 
@@ -148,3 +157,45 @@ async def extract_from_messages(
     except Exception:
         logger.exception("Extraction failed")
         return ExtractionResult(updates=[])
+
+
+class _FollowUpSuggestion(BaseModel):
+    message: str
+    days: int
+
+
+async def generate_follow_up_for_project(project: dict) -> tuple[str, int]:
+    """
+    Generate a follow-up reminder for a project that has no pending follow-up scheduled.
+    Returns (message_text, days_until_send).
+    Falls back to a generic message on failure.
+    """
+    base_client = get_client()
+    client = instructor.from_openai(base_client, mode=instructor.Mode.JSON)
+
+    prompt = (
+        f'Project: {project["name"]}\n'
+        f'Description: {project.get("description") or "no description"}\n'
+        f'Last updated: {project.get("updated_at", "unknown")}\n\n'
+        "Write a short, friendly WhatsApp follow-up reminder for this project. "
+        "Choose 1–14 days based on urgency (recent/urgent = fewer days, longer-term = more). "
+        'Output JSON with "message" (the reminder text) and "days" (integer).'
+    )
+
+    try:
+        result = await client.chat.completions.create(
+            model=settings.ai_model,
+            max_tokens=256,
+            response_model=_FollowUpSuggestion,
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You generate concise WhatsApp follow-up reminders for a project tracker. Output ONLY valid JSON.",
+                },
+                {"role": "user", "content": prompt},
+            ],
+        )
+        return result.message, result.days
+    except Exception:
+        logger.exception("Failed to generate follow-up for project '%s'", project.get("name"))
+        return f"Any updates on {project['name']}?", 7

@@ -20,7 +20,11 @@ from traick.admin.router import router as admin_router
 from traick.config import settings
 from traick.db.database import init_db
 from traick.dev.router import router as dev_router
-from traick.scheduler.jobs import process_pending_messages, send_due_reminders
+from traick.scheduler.jobs import (
+    ensure_active_project_followups,
+    process_pending_messages,
+    send_due_reminders,
+)
 from traick.webhook.router import router as webhook_router
 
 logging.basicConfig(
@@ -53,6 +57,13 @@ async def lifespan(app: FastAPI):
         "interval",
         minutes=settings.reminder_interval_minutes,
         id="send_reminders",
+        replace_existing=True,
+    )
+    _scheduler.add_job(
+        ensure_active_project_followups,
+        "interval",
+        hours=24,
+        id="ensure_followups",
         replace_existing=True,
     )
     _scheduler.start()
