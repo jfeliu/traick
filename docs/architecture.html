@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Traick Architecture</title>
+<meta name="description" content="How a WhatsApp message flows through Traick into an auto-reply, extracted projects, and scheduled follow-up reminders." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..48,500;12..48,600;12..48,700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" />
+
+<style>
+  :root {
+    color-scheme: light dark;
+    --ground: #e7e0d5;
+    --surface: #fbf9f5;
+    --surface-2: #efe8dc;
+    --ink: #1f2a28;
+    --muted: #5f6b64;
+    --line: #c7bba4;
+    --line-soft: #d9cfba;
+    --teal: #0a5c52;
+    --live: #178a4e;
+    --amber: #9a6b1a;
+    --shadow: 0 1px 2px rgba(31, 42, 40, .06), 0 12px 30px -18px rgba(31, 42, 40, .25);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #0e1512;
+      --surface: #17211d;
+      --surface-2: #1f2a25;
+      --ink: #e4e9e4;
+      --muted: #94a29a;
+      --line: #33453e;
+      --line-soft: #2a3833;
+      --teal: #4cc0ad;
+      --live: #3ad083;
+      --amber: #d6a052;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 18px 40px -20px rgba(0, 0, 0, .6);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #0e1512;
+    --surface: #17211d;
+    --surface-2: #1f2a25;
+    --ink: #e4e9e4;
+    --muted: #94a29a;
+    --line: #33453e;
+    --line-soft: #2a3833;
+    --teal: #4cc0ad;
+    --live: #3ad083;
+    --amber: #d6a052;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 18px 40px -20px rgba(0, 0, 0, .6);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: clamp(28px, 5vw, 72px) clamp(18px, 4vw, 44px) 96px;
+  }
+
+  header { margin-bottom: 44px; }
+  .kicker {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--teal);
+    margin: 0 0 14px;
+  }
+  h1 {
+    font-family: "Bricolage Grotesque", sans-serif;
+    font-weight: 700;
+    font-size: clamp(2.1rem, 5.5vw, 3.4rem);
+    line-height: 1.04;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+    margin: 0 0 18px;
+  }
+  .lede {
+    font-size: clamp(1.02rem, 2.2vw, 1.22rem);
+    color: var(--muted);
+    max-width: 64ch;
+    margin: 0;
+  }
+
+  h2 {
+    font-family: "Bricolage Grotesque", sans-serif;
+    font-weight: 600;
+    font-size: 1.5rem;
+    letter-spacing: -0.01em;
+    margin: 64px 0 6px;
+  }
+  h2 .num {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .85rem;
+    font-weight: 500;
+    color: var(--teal);
+    margin-right: 12px;
+    vertical-align: 3px;
+  }
+  .section-note {
+    color: var(--muted);
+    max-width: 64ch;
+    margin: 0 0 26px;
+  }
+
+  figure {
+    margin: 0;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: clamp(16px, 3vw, 30px);
+    box-shadow: var(--shadow);
+  }
+  .scroll { overflow-x: auto; }
+  .diagram {
+    display: block;
+    width: 100%;
+    height: auto;
+    min-width: 720px;
+    color: var(--ink);
+  }
+  figcaption {
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid var(--line-soft);
+    font-size: .92rem;
+    color: var(--muted);
+  }
+
+  .diagram text { font-family: "IBM Plex Sans", sans-serif; fill: var(--ink); }
+  .diagram .t-title { font-family: "Bricolage Grotesque", sans-serif; font-weight: 600; }
+  .diagram .t-mono { font-family: "IBM Plex Mono", monospace; }
+  .diagram .t-lbl { font-family: "IBM Plex Mono", monospace; fill: var(--muted); font-size: 11px; }
+  .diagram .t-sub { fill: var(--muted); font-size: 11px; }
+  .diagram .box { fill: var(--surface-2); stroke: var(--line); stroke-width: 1.5; }
+  .diagram .zone { fill: none; stroke: var(--line); stroke-width: 1.5; }
+  .diagram .job { fill: none; stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 5 4; }
+  .diagram .db { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; }
+  .diagram .flow { fill: none; stroke: var(--ink); stroke-width: 1.8; }
+  .diagram .flow-live { fill: none; stroke: var(--live); stroke-width: 2.4; }
+  .diagram .flow-thin { fill: none; stroke: var(--muted); stroke-width: 1.3; stroke-dasharray: 3 3; }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 22px;
+    margin: 22px 0 20px;
+    font-size: .86rem;
+    font-family: "IBM Plex Mono", monospace;
+    color: var(--muted);
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 9px; }
+  .legend i {
+    width: 26px; height: 0; flex: none;
+    border-top: 2px solid var(--ink);
+  }
+  .legend i.live { border-top: 2.5px solid var(--live); }
+  .legend i.thin { border-top: 2px dashed var(--muted); }
+  .legend i.job {
+    height: 14px; width: 22px; border: 1.5px dashed var(--muted);
+    border-radius: 3px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .93rem;
+  }
+  th, td {
+    text-align: left;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--line-soft);
+    vertical-align: top;
+  }
+  th {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  td code, .section-note code, li code {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .88em;
+    background: var(--surface-2);
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+  .every {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .82rem;
+    color: var(--teal);
+    white-space: nowrap;
+  }
+
+  ol.life { counter-reset: step; list-style: none; padding: 0; margin: 0; max-width: 72ch; }
+  ol.life li {
+    position: relative;
+    padding: 0 0 18px 46px;
+    border-left: 1.5px solid var(--line);
+    margin-left: 12px;
+  }
+  ol.life li:last-child { border-left-color: transparent; padding-bottom: 0; }
+  ol.life li::before {
+    counter-increment: step;
+    content: counter(step);
+    position: absolute;
+    left: -13px; top: -2px;
+    width: 25px; height: 25px;
+    display: grid; place-items: center;
+    background: var(--teal);
+    color: var(--ground);
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .78rem;
+    font-weight: 600;
+    border-radius: 50%;
+  }
+  ol.life strong { font-weight: 600; }
+  ol.life p { margin: 3px 0 0; color: var(--muted); font-size: .95rem; }
+
+  .stack { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); list-style: none; padding: 0; margin: 0; }
+  .stack li {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 13px 15px;
+    font-size: .92rem;
+  }
+  .stack b { font-family: "Bricolage Grotesque", sans-serif; display: block; margin-bottom: 2px; }
+  .stack span { color: var(--muted); font-size: .86rem; }
+
+  a { color: var(--teal); }
+  @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+  img { max-width: 100%; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <p class="kicker">System Architecture</p>
+    <h1>Traick: from one WhatsApp message to a tracked project</h1>
+    <p class="lede">
+      Traick is a single FastAPI process. A Meta webhook drops each inbound message into
+      SQLite, a local Ollama model writes the reply, and three interval jobs turn the
+      backlog into projects, action items, and follow-up reminders.
+    </p>
+  </header>
+
+  <h2><span class="num">01</span>The whole system</h2>
+  <p class="section-note">
+    One process serves the webhook, runs the scheduler, and hosts the admin UI. Everything
+    shares <code>traick.db</code>. The only outbound dependencies are the Meta Cloud API and
+    a local Ollama server.
+  </p>
+
+  <div class="legend" aria-hidden="true">
+    <span><i></i> in-process call / HTTP request</span>
+    <span><i class="live"></i> automatic reply (within 24&#8202;h window)</span>
+    <span><i class="thin"></i> SQLite read / write</span>
+    <span><i class="job"></i> APScheduler interval job</span>
+  </div>
+
+  <figure>
+    <div class="scroll">
+      <svg class="diagram" viewBox="0 0 1180 600" role="img"
+           aria-label="Inbound WhatsApp messages reach POST /webhook through the Meta Cloud API and are inserted into the raw_messages table in SQLite. A FastAPI BackgroundTask calls ai/responder.py, which asks the local Ollama model for a reply and sends it back through whatsapp/sender.py and the Meta API. Separately, an APScheduler job every 5 minutes reads unprocessed messages and calls ai/extractor.py, which uses Ollama in JSON mode to upsert projects, action items, and follow-ups. A job every 15 minutes sends due follow-ups as WhatsApp template messages, and a daily job backfills follow-ups for active projects that have none. The admin and dev UIs read and write the same database.">
+        <defs>
+          <marker id="ah" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0 0L10 5L0 10z" fill="var(--ink)" />
+          </marker>
+          <marker id="ah-live" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0 0L10 5L0 10z" fill="var(--live)" />
+          </marker>
+          <marker id="ah-thin" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+            <path d="M0 0L10 5L0 10z" fill="var(--muted)" />
+          </marker>
+        </defs>
+
+        <!-- ================= zones ================= -->
+        <rect class="zone" x="246" y="18" width="690" height="566" rx="14" />
+        <text class="t-mono t-sub" x="264" y="40" style="font-size:12px;fill:var(--teal)">traick &#8226; one FastAPI process</text>
+
+        <!-- ================= outside-left ================= -->
+        <rect class="box" x="24" y="48" width="168" height="56" rx="8" />
+        <text class="t-title" x="108" y="72" text-anchor="middle" font-size="13">Contact</text>
+        <text class="t-sub" x="108" y="90" text-anchor="middle">WhatsApp user &#183; your phone</text>
+
+        <rect class="box" x="24" y="300" width="168" height="96" rx="8" />
+        <text class="t-title" x="108" y="330" text-anchor="middle" font-size="13">Meta WhatsApp</text>
+        <text class="t-sub" x="108" y="348" text-anchor="middle">Cloud API</text>
+        <text class="t-lbl" x="108" y="370" text-anchor="middle" style="font-size:10px">graph.facebook.com</text>
+        <text class="t-lbl" x="108" y="384" text-anchor="middle" style="font-size:10px">/v20.0</text>
+
+        <!-- ================= Ollama ================= -->
+        <rect class="box" x="984" y="150" width="176" height="112" rx="8" />
+        <text class="t-title" x="1072" y="182" text-anchor="middle" font-size="13">Ollama</text>
+        <text class="t-sub" x="1072" y="200" text-anchor="middle">localhost:11434</text>
+        <text class="t-lbl" x="1072" y="222" text-anchor="middle" style="font-size:10px">qwen2.5</text>
+        <text class="t-lbl" x="1072" y="238" text-anchor="middle" style="font-size:10px">OpenAI-compatible /v1</text>
+
+        <!-- ================= entry row ================= -->
+        <rect class="box" x="262" y="60" width="180" height="50" rx="7" />
+        <text class="t-mono" x="352" y="82" text-anchor="middle" font-size="12">POST /webhook</text>
+        <text class="t-sub" x="352" y="99" text-anchor="middle">parse &#183; whitelist</text>
+
+        <rect class="box" x="468" y="60" width="182" height="50" rx="7" />
+        <text class="t-mono" x="559" y="82" text-anchor="middle" font-size="12">BackgroundTasks</text>
+        <text class="t-sub" x="559" y="99" text-anchor="middle">_handle_reply()</text>
+
+        <rect class="box" x="696" y="60" width="176" height="50" rx="7" />
+        <text class="t-mono" x="784" y="82" text-anchor="middle" font-size="12">ai/responder.py</text>
+        <text class="t-sub" x="784" y="99" text-anchor="middle">generate_reply()</text>
+
+        <!-- sender -->
+        <rect class="box" x="696" y="150" width="176" height="52" rx="7" />
+        <text class="t-mono" x="784" y="172" text-anchor="middle" font-size="12">whatsapp/sender.py</text>
+        <text class="t-sub" x="784" y="190" text-anchor="middle">send_message &#183; send_template</text>
+
+        <!-- ================= DB cluster ================= -->
+        <rect class="db" x="262" y="262" width="180" height="230" rx="8" />
+        <text class="t-mono t-sub" x="352" y="282" text-anchor="middle" style="font-size:11px">SQLite &#8226; traick.db</text>
+        <rect class="box" x="276" y="294" width="152" height="38" rx="5" />
+        <text class="t-mono" x="352" y="317" text-anchor="middle" font-size="11">raw_messages</text>
+        <rect class="box" x="276" y="340" width="152" height="38" rx="5" />
+        <text class="t-mono" x="352" y="363" text-anchor="middle" font-size="11">projects</text>
+        <rect class="box" x="276" y="386" width="152" height="38" rx="5" />
+        <text class="t-mono" x="352" y="409" text-anchor="middle" font-size="11">action_items</text>
+        <rect class="box" x="276" y="432" width="152" height="38" rx="5" />
+        <text class="t-mono" x="352" y="455" text-anchor="middle" font-size="11">follow_ups</text>
+
+        <!-- ================= scheduler jobs ================= -->
+        <rect class="job" x="500" y="264" width="184" height="56" rx="7" />
+        <text class="t-lbl" x="592" y="284" text-anchor="middle" style="fill:var(--teal)">every 5 min</text>
+        <text class="t-mono" x="592" y="304" text-anchor="middle" font-size="11">process_pending_messages</text>
+
+        <rect class="job" x="500" y="344" width="184" height="56" rx="7" />
+        <text class="t-lbl" x="592" y="364" text-anchor="middle" style="fill:var(--teal)">every 15 min</text>
+        <text class="t-mono" x="592" y="384" text-anchor="middle" font-size="11">send_due_reminders</text>
+
+        <rect class="job" x="500" y="424" width="184" height="56" rx="7" />
+        <text class="t-lbl" x="592" y="444" text-anchor="middle" style="fill:var(--teal)">every 24 h</text>
+        <text class="t-mono" x="592" y="464" text-anchor="middle" font-size="11">ensure_active_project_followups</text>
+
+        <!-- extractor -->
+        <rect class="box" x="704" y="280" width="168" height="48" rx="7" />
+        <text class="t-mono" x="788" y="301" text-anchor="middle" font-size="12">ai/extractor.py</text>
+        <text class="t-sub" x="788" y="318" text-anchor="middle">extract_from_messages()</text>
+
+        <!-- admin -->
+        <rect class="box" x="262" y="520" width="180" height="52" rx="7" />
+        <text class="t-mono" x="352" y="542" text-anchor="middle" font-size="11">Admin UI  /admin/*</text>
+        <text class="t-sub" x="352" y="559" text-anchor="middle">Dev chat  /dev/chat</text>
+
+        <!-- ================= arrows ================= -->
+        <!-- contact <-> meta -->
+        <line class="flow" x1="92" y1="104" x2="92" y2="298" marker-end="url(#ah)" />
+        <line class="flow-live" x1="132" y1="300" x2="132" y2="106" marker-end="url(#ah-live)" />
+        <text class="t-lbl" x="84" y="210" text-anchor="end">sends</text>
+        <text class="t-lbl" x="140" y="200" style="fill:var(--live)">reply /</text>
+        <text class="t-lbl" x="140" y="214" style="fill:var(--live)">reminder</text>
+
+        <!-- meta -> webhook -->
+        <line class="flow" x1="168" y1="316" x2="260" y2="92" marker-end="url(#ah)" />
+        <text class="t-lbl" x="238" y="196" text-anchor="middle">POST notify</text>
+
+        <!-- webhook -> raw_messages -->
+        <path class="flow-thin" d="M330 110 L330 294" marker-end="url(#ah-thin)" />
+        <text class="t-lbl" x="338" y="200">INSERT, 200 OK</text>
+
+        <!-- webhook -> handle_reply -->
+        <line class="flow" x1="442" y1="85" x2="466" y2="85" marker-end="url(#ah)" />
+        <text class="t-lbl" x="454" y="52" text-anchor="middle">task</text>
+
+        <!-- handle_reply -> responder -->
+        <line class="flow" x1="650" y1="85" x2="694" y2="85" marker-end="url(#ah)" />
+        <text class="t-lbl" x="672" y="52" text-anchor="middle">+ context</text>
+
+        <!-- handle_reply -> DB read -->
+        <path class="flow-thin" d="M512 110 C 480 200, 470 300, 444 350" marker-end="url(#ah-thin)" />
+        <text class="t-lbl" x="470" y="238">reads projects</text>
+        <text class="t-lbl" x="470" y="252">+ recent msgs</text>
+
+        <!-- responder -> ollama -->
+        <line class="flow" x1="872" y1="82" x2="982" y2="150" marker-end="url(#ah)" />
+        <text class="t-lbl" x="906" y="104">chat completion</text>
+
+        <!-- responder -> sender (live) -->
+        <line class="flow-live" x1="784" y1="110" x2="784" y2="148" marker-end="url(#ah-live)" />
+        <text class="t-lbl" x="792" y="132" style="fill:var(--live)">reply text</text>
+
+        <!-- sender -> meta -->
+        <path class="flow" d="M696 178 L206 178 L192 296" marker-end="url(#ah)" />
+        <text class="t-lbl" x="430" y="170" text-anchor="middle">Graph API POST</text>
+
+        <!-- process job -> raw_messages -->
+        <path class="flow-thin" d="M500 288 L430 302" marker-end="url(#ah-thin)" />
+        <text class="t-lbl" x="470" y="268" text-anchor="middle">unprocessed &#215;20</text>
+
+        <!-- process job -> extractor -->
+        <line class="flow" x1="684" y1="300" x2="702" y2="302" marker-end="url(#ah)" />
+
+        <!-- extractor -> ollama -->
+        <line class="flow" x1="872" y1="300" x2="982" y2="212" marker-end="url(#ah)" />
+        <text class="t-lbl" x="900" y="252">JSON mode</text>
+
+        <!-- extractor -> follow_ups / projects write -->
+        <path class="flow-thin" d="M772 328 L772 506 L352 506 L352 472" marker-end="url(#ah-thin)" />
+        <text class="t-lbl" x="782" y="404">upsert projects,</text>
+        <text class="t-lbl" x="782" y="418">tasks &amp; follow-ups</text>
+
+        <!-- send_due_reminders -> follow_ups read -->
+        <path class="flow-thin" d="M500 386 L444 446" marker-end="url(#ah-thin)" />
+        <text class="t-lbl" x="452" y="424">due &amp; unsent</text>
+
+        <!-- send_due_reminders -> sender -->
+        <path class="flow" d="M684 372 L912 372 L912 178 L874 178" marker-end="url(#ah)" />
+        <text class="t-lbl" x="920" y="276">template</text>
+        <text class="t-lbl" x="920" y="290">message</text>
+
+        <!-- ensure job -> follow_ups write -->
+        <path class="flow-thin" d="M500 450 L444 452" marker-end="url(#ah-thin)" />
+        <text class="t-lbl" x="470" y="476" text-anchor="middle">insert follow-up</text>
+
+        <!-- admin <-> DB -->
+        <path class="flow-thin" d="M352 518 L352 496" marker-start="url(#ah-thin)" marker-end="url(#ah-thin)" />
+        <text class="t-lbl" x="360" y="510">read / write</text>
+      </svg>
+    </div>
+    <figcaption>
+      The green path is the only synchronous work the webhook triggers &mdash; a free-form
+      reply, valid only inside WhatsApp's 24&#8202;hour service window. The reply is also
+      written back to <code>raw_messages</code> (<code>direction = 'out'</code>). Everything
+      else happens later, on a timer, so the webhook can return <code>200</code> to Meta
+      immediately and avoid retries.
+    </figcaption>
+  </figure>
+
+  <h2><span class="num">02</span>Lifecycle of one inbound message</h2>
+  <p class="section-note">Two independent timelines start from a single <code>POST /webhook</code>.</p>
+  <ol class="life">
+    <li>
+      <strong>Meta delivers the message.</strong>
+      <p>The payload is validated; senders outside <code>ALLOWED_NUMBERS</code> and non-text
+      types are dropped. The row is saved to <code>raw_messages</code> with <code>processed = 0</code>.</p>
+    </li>
+    <li>
+      <strong>A BackgroundTask writes the reply.</strong>
+      <p><code>_handle_reply</code> loads the sender's active projects and last 10 messages,
+      asks Ollama for a reply, and &mdash; unless the model returns <code>NO_REPLY</code> or
+      repeats the last outgoing line &mdash; sends it via <code>send_message</code>.</p>
+    </li>
+    <li>
+      <strong>Every 5 min: extraction.</strong>
+      <p><code>process_pending_messages</code> pulls up to <code>BATCH_SIZE</code> unprocessed
+      rows, groups them by sender, and per group calls <code>extract_from_messages</code>.
+      Instructor forces the model output into <code>ExtractionResult</code>; projects are
+      upserted by <code>(owner_number, name)</code>, action items and any suggested follow-up
+      are inserted, then the rows are marked <code>processed = 1</code>.</p>
+    </li>
+    <li>
+      <strong>Every 15 min: reminders.</strong>
+      <p><code>send_due_reminders</code> finds follow-ups with <code>scheduled_at &le; now</code>
+      and <code>sent = 0</code>, sends each through the approved
+      <code>traick_recordatori_v2</code> template (works outside the 24&#8202;h window), and
+      marks them <code>sent = 1</code>.</p>
+    </li>
+    <li>
+      <strong>Every 24 h: safety net.</strong>
+      <p><code>ensure_active_project_followups</code> finds active projects with no pending
+      follow-up and generates one, so nothing the extractor missed goes silent.</p>
+    </li>
+  </ol>
+
+  <h2><span class="num">03</span>Data model</h2>
+  <p class="section-note">
+    Four tables in <code>traick.db</code>, created on startup by <code>init_db()</code>.
+    Projects are scoped per contact &mdash; there is no user table; <code>owner_number</code>
+    is the tenant key.
+  </p>
+
+  <figure>
+    <div class="scroll">
+      <svg class="diagram" viewBox="0 0 980 440" role="img"
+           aria-label="raw_messages stands alone, linked only conceptually to projects by matching from_number to owner_number. projects is the hub: action_items has a project_id foreign key to projects, and follow_ups has both a project_id foreign key to projects and an action_item_id foreign key to action_items. All relationships are many-to-one.">
+        <defs>
+          <marker id="fk" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0 0L10 5L0 10z" fill="var(--ink)" />
+          </marker>
+        </defs>
+
+        <!-- raw_messages -->
+        <g>
+          <rect class="db" x="28" y="70" width="210" height="196" rx="8" />
+          <rect x="28" y="70" width="210" height="30" rx="8" fill="var(--teal)" />
+          <rect x="28" y="86" width="210" height="14" fill="var(--teal)" />
+          <text class="t-mono" x="42" y="90" font-size="12" fill="var(--ground)">raw_messages</text>
+          <text class="t-mono t-sub" x="42" y="122">id</text>
+          <text class="t-mono t-sub" x="42" y="144">wa_message_id &#183; UNIQUE</text>
+          <text class="t-mono t-sub" x="42" y="166">from_number</text>
+          <text class="t-mono t-sub" x="42" y="188">body</text>
+          <text class="t-mono t-sub" x="42" y="210">timestamp</text>
+          <text class="t-mono t-sub" x="42" y="232">processed</text>
+          <text class="t-mono t-sub" x="42" y="254">direction &#8202;&#183;&#8202; in / out</text>
+        </g>
+
+        <!-- projects -->
+        <g>
+          <rect class="db" x="392" y="40" width="212" height="196" rx="8" />
+          <rect x="392" y="40" width="212" height="30" rx="8" fill="var(--teal)" />
+          <rect x="392" y="56" width="212" height="14" fill="var(--teal)" />
+          <text class="t-mono" x="406" y="60" font-size="12" fill="var(--ground)">projects</text>
+          <text class="t-mono t-sub" x="406" y="92">id</text>
+          <text class="t-mono t-sub" x="406" y="114">owner_number</text>
+          <text class="t-mono t-sub" x="406" y="136">name</text>
+          <text class="t-mono t-sub" x="406" y="158">description</text>
+          <text class="t-mono t-sub" x="406" y="180">status &#8202;&#183;&#8202; active / paused / done</text>
+          <text class="t-mono t-sub" x="406" y="202">created_at</text>
+          <text class="t-mono t-sub" x="406" y="224">updated_at</text>
+          <text class="t-lbl" x="406" y="252" style="font-size:10px">UNIQUE (owner_number, name)</text>
+        </g>
+
+        <!-- action_items -->
+        <g>
+          <rect class="db" x="392" y="286" width="212" height="130" rx="8" />
+          <rect x="392" y="286" width="212" height="30" rx="8" fill="var(--teal)" />
+          <rect x="392" y="302" width="212" height="14" fill="var(--teal)" />
+          <text class="t-mono" x="406" y="306" font-size="12" fill="var(--ground)">action_items</text>
+          <text class="t-mono t-sub" x="406" y="338">id</text>
+          <text class="t-mono t-sub" x="406" y="360">project_id &#8594;</text>
+          <text class="t-mono t-sub" x="406" y="382">description &#183; deadline</text>
+          <text class="t-mono t-sub" x="406" y="404">status &#8202;&#183;&#8202; open / done</text>
+        </g>
+
+        <!-- follow_ups -->
+        <g>
+          <rect class="db" x="720" y="150" width="216" height="152" rx="8" />
+          <rect x="720" y="150" width="216" height="30" rx="8" fill="var(--teal)" />
+          <rect x="720" y="166" width="216" height="14" fill="var(--teal)" />
+          <text class="t-mono" x="734" y="170" font-size="12" fill="var(--ground)">follow_ups</text>
+          <text class="t-mono t-sub" x="734" y="202">id</text>
+          <text class="t-mono t-sub" x="734" y="224">project_id &#8594;</text>
+          <text class="t-mono t-sub" x="734" y="246">action_item_id &#8594;</text>
+          <text class="t-mono t-sub" x="734" y="268">message &#183; scheduled_at</text>
+          <text class="t-mono t-sub" x="734" y="290">sent</text>
+        </g>
+
+        <!-- relations -->
+        <path class="flow" d="M498 286 L498 240" marker-end="url(#fk)" />
+        <text class="t-lbl" x="506" y="268">N:1</text>
+
+        <path class="flow" d="M720 210 C 660 190, 640 150, 606 132" marker-end="url(#fk)" />
+        <text class="t-lbl" x="630" y="150">N:1</text>
+
+        <path class="flow" d="M720 250 C 660 290, 640 340, 606 360" marker-end="url(#fk)" />
+        <text class="t-lbl" x="628" y="316">N:1</text>
+
+        <path class="flow-thin" d="M238 110 L392 92" marker-end="url(#ah-thin)" />
+        <text class="t-lbl" x="248" y="86">grouped by from_number</text>
+        <text class="t-lbl" x="248" y="100">= owner_number</text>
+      </svg>
+    </div>
+    <figcaption>
+      <code>raw_messages</code> has no foreign key to <code>projects</code>; the extractor is
+      what bridges them, reading a contact's backlog and writing rows keyed to that same
+      number. Foreign keys are declared but not enforced (SQLite default).
+    </figcaption>
+  </figure>
+
+  <h2><span class="num">04</span>Scheduled jobs</h2>
+  <div class="scroll">
+    <table>
+      <thead>
+        <tr><th>Job</th><th>Cadence</th><th>Reads</th><th>Writes</th><th>External call</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>process_pending_messages</code></td>
+          <td class="every">every 5 min</td>
+          <td><code>raw_messages</code> where <code>processed = 0</code>, existing <code>projects</code></td>
+          <td><code>projects</code>, <code>action_items</code>, <code>follow_ups</code>; marks messages processed</td>
+          <td>Ollama &mdash; <code>extract_from_messages</code> (JSON / Instructor)</td>
+        </tr>
+        <tr>
+          <td><code>send_due_reminders</code></td>
+          <td class="every">every 15 min</td>
+          <td><code>follow_ups</code> due and unsent, joined to <code>projects</code></td>
+          <td><code>follow_ups.sent = 1</code></td>
+          <td>Meta &mdash; <code>send_template_message</code> (<code>traick_recordatori_v2</code>)</td>
+        </tr>
+        <tr>
+          <td><code>ensure_active_project_followups</code></td>
+          <td class="every">every 24 h</td>
+          <td>active <code>projects</code> with no pending <code>follow_up</code></td>
+          <td><code>follow_ups</code></td>
+          <td>Ollama &mdash; <code>generate_follow_up_for_project</code></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="section-note" style="margin-top:18px">
+    All three run in-process on <code>AsyncIOScheduler</code>, started and stopped by the
+    FastAPI <code>lifespan</code> handler. Intervals for the first two are configurable via
+    <code>PROCESS_INTERVAL_MINUTES</code> and <code>REMINDER_INTERVAL_MINUTES</code>.
+  </p>
+
+  <h2><span class="num">05</span>Stack &amp; boundaries</h2>
+  <ul class="stack">
+    <li><b>FastAPI + Uvicorn</b><span>Webhook, admin, dev routers; one process, one port.</span></li>
+    <li><b>APScheduler</b><span>In-process interval jobs, no separate worker or broker.</span></li>
+    <li><b>SQLite via aiosqlite</b><span>Single file <code>traick.db</code>; schema built on startup.</span></li>
+    <li><b>Ollama</b><span>Local model over the OpenAI-compatible API; never leaves the host.</span></li>
+    <li><b>Instructor + Pydantic</b><span>Validated structured output for extraction.</span></li>
+    <li><b>Meta WhatsApp Cloud API</b><span>Inbound webhook; outbound free-form and template sends.</span></li>
+    <li><b>Jinja2</b><span>Server-rendered admin UI under <code>/admin/*</code>, session-cookie auth.</span></li>
+    <li><b>Starlette SessionMiddleware</b><span>Plus a host-rewrite shim mapping an admin subdomain to <code>/admin</code>.</span></li>
+  </ul>
+</div>
+
+</body>
+</html>
